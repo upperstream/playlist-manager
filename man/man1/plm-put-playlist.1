@@ -1,0 +1,88 @@
+.Dd October 29, 2024
+.Dt PLM-PUT-PLAYLIST 1
+.Os Playlist Manager
+.Sh NAME
+.Nm plm-put-playlist
+.Nd copy playlist files and correspondent media files from PC to device
+.Sh SYNOPSYS
+.Nm plm put-playlist
+.Ar dest
+.Ar playlist
+.Ar [ ... ]
+.br
+.Nm
+.Fl H | -help
+.Sh DESCRIPTION
+The first synopsys copies playlist file specified by
+.Ar playlist
+parameter and correspondent media files from PC to device that
+.Ar dest
+parameter points to.
+The backslash (
+.Sq \e
+) characters in playlist files are replaced with the forward slash (
+.Sq /
+) characters during transfer.
+.Pp
+The second sysopsys displays the help screen and quits.
+.Sh EXIT STATUS
+.Bl -tag -compact
+.It 0
+Command successfully exits.
+.It 255
+Command fails with invalid command line arguments.
+.El
+.Sh EXAMPLES
+Suppose media files reside in the home directory:
+.Pp
+.Bd -literal -offset indent
+~/MUSIC
+  +-- artist1
+  |   +-- album1
+  |       +-- title1.flac
+  |       +-- title2.flac
+  +-- artist2
+  |   +-- album1
+  |   |   +-- title1.flac
+  |   +-- album2
+  |       +-- title1.flac
+  +-- playlist.m3u8
+.Ed
+.Pp
+and the playlist
+.Pa playlist.m3u8
+has the following content:
+.Pp
+.Bd -literal -offset indent
+artist1/album1/title1.flac
+artist1/album1/title2.flac
+artist2/album1/title1.flac
+artist2/album2/title1.flac
+.Ed
+.Pp
+The following command copies
+.Pa ~/MUSIC/playlist.m3u8
+playlist file and media files correspndent to the playlist into
+.Pa /mnt/sdcard/MUSIC
+directory:
+.Dl plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
+.Pp
+and results in the following files on the SD card:
+.Pp
+.Bd -literal -offset indent
+/mnt/sdcard/MUSIC
+  +-- artist1
+  |   +-- album1
+  |       +-- title1.flac
+  |       +-- title2.flac
+  +-- artist2
+  |   +-- album1
+  |   |   +-- title1.flac
+  |   +-- album2
+  |       +-- title1.flac
+  +-- playlist.m3u8
+.Ed
+.Pp
+
+.Sh SEE ALSO
+.Xr plm 1

@@ -1,0 +1,30 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+[Makefile]
+indent_style = tab
+indent_size = 4
+
+[plm*.*]
+indent_style = tab
+indent_size = 4
+
+[**.1]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[**.json]
+indent_style = space
+indent_size = 2
+
+[**.md]
+indent_style = space
+indent_size = 4
+
+[**.sh]
+indent_style = tab
+indent_size = 4

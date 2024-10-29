@@ -1,0 +1,70 @@
+.Dd October 29, 2024
+.Dt PLM 1
+.Os Playlist Manager
+.Sh NAME
+.Nm plm
+.Nd manipulates playlist file and correspondent media files
+.Sh SYNOPSYS
+.Nm plm
+.Ar command Oo command_options Oc Ar command_parameters
+.br
+.Nm
+.Cm help Op Ar command
+.br
+.Nm
+.Fl H | -help
+.Sh DESCRIPTION
+The first synopsys invokes the
+.Cm command
+with
+.Ar command_options
+and
+.Cm command_parameters.
+.Pp
+The second synopsys displays a help screen for the
+.I command
+and quits.  If the
+.Ar command
+parameter is omitted, it displays a help screen for
+.Nm
+command itself and quits.
+.Pp
+The third synopsys displays a help screen for
+.B plm
+and quits.
+.Sh "PLM SUBCOMMANDS"
+The
+.Nm
+command takes a subcommand to be invoked.  The following lists such subcommands and briefly describes them.
+.Bl -tag -width aaa -offset indent
+.It Cm put-playlist Ar dest Ar playlist
+Copy the specified
+.Ar playlist
+and correspondent media files from PC to device pointed to by
+.Ar dest
+parameter.
+See
+.Xr plm-put-command 1
+for details.
+.It Cm help Op Ar command
+Display a help screen for
+.Ar command
+and quit.  If the
+.Ar command
+parameter is omitted, it displays a help screen for
+.Nm
+command itself.
+See
+.Xr plm-help 1
+for details.
+.El
+.Sh EXIT STATUS
+.Bl -tag -compact
+.It 0
+Command successfully exits.
+.It 255
+Command fails with invalid command line arguments.
+.El
+.Sh SEE ALSO
+.Xr plm-help 1 ,
+.Xr plm-put-playlist 1

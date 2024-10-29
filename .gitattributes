@@ -1,0 +1,6 @@
+*.1     eol=lf
+*.json  eol=lf
+*.md	eol=lf
+*.txt   eol=lf
+Makefile    eol=lf
+plm*    eol=lf

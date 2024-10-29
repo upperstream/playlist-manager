@@ -1,0 +1,105 @@
+#!/bin/sh
+# -*- mode: Sh -*-
+
+#set -x
+
+absdir() {
+	cd -- "$1" || return $?
+	echo "$PWD"
+	cd - >/dev/null || return $?
+}
+
+program=${0##*/}
+
+print_usage() {
+	cat <<-EOF
+	Usage:
+	  $program [-v | --verbose] dest playlist [...]
+	  $program -H | --help
+
+	-v | --verbose
+	     : print verbose messages
+	dest : destination to put playlists and media files into
+	playlist
+	     : playlist file(s) to put
+	EOF
+}
+
+longopt() {
+	case "$1" in
+		help) print_usage; exit;;
+		verbose) verbose=YES;;
+		*) printf "%s: Unknown option '%s'\n" "$0" "$1"; exit 255;;
+	esac
+}
+
+# Caller must supply the line terminater character
+print_message() {
+	if [ "$verbose" = "YES" ]; then
+		# shellcheck disable=SC2059
+		printf "$@" >&2
+	fi
+}
+
+copy_media_files() {
+	src_basedir="$1"
+	dest_basedir="$2"
+	nfiles=0
+	while read -r file; do
+		dir="$dest_basedir/${file%/*}"
+		if [ ! -d "$dir" ]; then
+			mkdir -p "$dir"
+		fi
+		print_message "Copy \"%s\" to \"%s\"\n" "$src_basedir/$file" "$dest_basedir/$file"
+		cp "$src_basedir/$file" "$dir/${file##*/}" && nfiles=$((nfiles + 1))
+	done
+	echo $nfiles
+}
+
+copy_playlist() {
+	playlist="$1"
+	src_basedir=${playlist%/*}
+	dest_basedir="$2"
+	if [ ! -d "$dest_basedir" ]; then
+		mkdir -p "$dest_basedir"
+	fi
+	if grep -q '^[^#][^#]*\\' "$playlist"; then
+		sed '/^[^#][^#]*\\/s:\\:/:g' "$playlist" > "$dest_basedir/${playlist##*/}"
+	else
+		print_message "Copy playlist \"%s\" into \"%s\"\n" "$playlist" "$dest_basedir/"
+		cp "$playlist" "$dest_basedir/"
+	fi
+	nfiles=$(sed 's/^\xef\xbb\xbf//;s/#.*$//;/^$/d;s:\\:/:g' "$playlist" | copy_media_files "$src_basedir" "$dest_basedir")
+	echo "$nfiles"
+}
+
+verbose=NO
+
+while getopts "vH-:" opt; do
+	case "$opt" in
+		H) print_usage; exit;;
+		v) verbose=YES;;
+		-) longopt "$OPTARG";;
+		?) printf "%s: Unknown option '%s'\n" "$0" "$OPTARG"; exit 255;;
+	esac
+done
+
+if [ $# -lt 2 ]; then
+	printf "%s: destination and playlist file (or more playlist files) must be supplied\n" "$0"
+	exit 255
+fi
+
+shift $((OPTIND - 1))
+
+destdir=$(absdir "$1")
+shift
+
+nplaylists=0
+nfiles=0
+
+for playlist; do
+	print_message "Put playlist \"%s\" into \"%s\"\n" "$playlist" "$destdir"
+	nfiles=$((nfiles + $(copy_playlist "$playlist" "$destdir"))) && nplaylists=$((nplaylists + 1))
+done
+printf "Number of copied playlists: %d\n" $nplaylists
+printf "Number of copied media files: %d\n" $nfiles
