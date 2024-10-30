@@ -21,7 +21,7 @@ print_usage() {
 	  $program -H | --help
 
 	put-playlist
-	    : put playlist file and correspondent media files into device
+	    : put playlist file and associated media files into device
 	help [subcommand]
 	    : print help screen of subcommand and quit.  If subcommand is
 	      omitted, help for 'plm' itself is displayed.

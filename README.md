@@ -1,12 +1,11 @@
 # Playlist Manager
 
 The Playlist Manager aims to be able to manipulate playlists and
-correspondent media files between PC and audio playback device.
+associated media files between PC and audio playback device.
 
 ## Feature
 
-* Copy playlist files and correspondent media files from a PC to a
-  device.
+* Copy playlist files and associated media files from a PC to a device.
 
 ## Prerequisites
 
@@ -35,9 +34,9 @@ In order to perform installation, `make` and `install` are required.
 There are couples of features to add:
 
 * Copy albums from a PC to a device
-* Delete playlist files and correspondent media files on a device
+* Delete playlist files and associated media files on a device
 * Delete albums on a device
-* Create a playlist file with correspondent media files on a PC
+* Create a playlist file with associated media files on a PC
 * Direct access to MTP device
 
 ## Licensing
