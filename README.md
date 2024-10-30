@@ -6,23 +6,25 @@ correspondent media files between PC and audio playback device.
 ## Feature
 
 * Copy playlist files and correspondent media files from a PC to a
-  device
+  device.
 
 ## Prerequisites
 
 * POSIX compliant shell
 * `cp`
+* `grep`
+* `mkdir`
 * `sed`
 
 ## Install
 
 Execute `make PREFIX=... install` using either BSD make or GNU make to
-install Playlist Manager.  Assigning PREFIX value to specify the
+install Playlist Manager.  Assigning PREFIX value specifies the
 destination of installation.  Default value is `/usr/local`.
 
 In order to perform installation, `make` and `install` are required.
 
-### Limitations
+## Limitations
 
 * This tool does not support direct access to MTP device at this moment.
   MTP device must be mounted using external tools such as [MTPfs][] so

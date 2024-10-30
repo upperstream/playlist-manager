@@ -69,7 +69,7 @@ copy_playlist() {
 		print_message "Copy playlist \"%s\" into \"%s\"\n" "$playlist" "$dest_basedir/"
 		cp "$playlist" "$dest_basedir/"
 	fi
-	nfiles=$(sed 's/^\xef\xbb\xbf//;s/#.*$//;/^$/d;s:\\:/:g' "$playlist" | copy_media_files "$src_basedir" "$dest_basedir")
+	nfiles=$(sed 's/^\xef\xbb\xbf//;s/'$'\r''$//;s/#.*$//;/^$/d;s:\\:/:g' "$playlist" | copy_media_files "$src_basedir" "$dest_basedir")
 	echo "$nfiles"
 }
 
