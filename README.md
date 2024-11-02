@@ -23,6 +23,12 @@ destination of installation.  Default value is `/usr/local`.
 
 In order to perform installation, `make` and `install` are required.
 
+## Uninstall
+
+Execute `make PREFIX=... uninstall` to uninstall the Playlist Manager.
+Assigning PREFIX value specifies the location where to uninstall from.
+Default value is `/usr/local`.
+
 ## Limitations
 
 * This tool does not support direct access to MTP device at this moment.

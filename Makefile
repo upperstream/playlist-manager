@@ -1,4 +1,4 @@
-.PHONY: help install
+.PHONY: help install uninstall
 
 PREFIX=/usr/local
 BINDIR=$(PREFIX)/bin
@@ -6,22 +6,28 @@ PLMBINDIR=$(PREFIX)/libexec/playlist-manager
 MANDIR=$(PREFIX)/share/man
 
 help:
-	@echo "make [-f Makefile] [-n] [PREFIX=...] [help | install]"
+	@echo "make [-f Makefile] [-n] [PREFIX=...] [<target>]"
 	@echo ""
 	@echo "-f Makefile"
-	@echo "   : explicitly specify this makefile for 'make' to process"
-	@echo "-n : merely prints what will be executed and quits"
+	@echo "   : Explicitly specify this makefile for 'make' to process"
+	@echo "-n : Merely print what will be executed and quit"
 	@echo "PREFIX=..."
-	@echo "   : specify destination directory tree to install this tool into"
-	@echo "help"
-	@echo "   : prints this help message and quits"
-	@echo "install"
-	@echo "   : performs installation of this tool"
+	@echo "   : Specify destination directory tree to install this tool into"
 	@echo ""
-	@echo "make and install are required."
+	@echo "Valid targets are:"
+	@echo "help : Default target; print this help message and quit"
+	@echo "install"
+	@echo "     : Perform installation of this tool"
+	@echo "uninstall"
+	@echo "     : Perform uninstallation of this tool"
+	@echo ""
+	@echo "'make' and 'install' are required."
 
 install:
 	mkdir -p $(BINDIR) $(PLMBINDIR) $(MANDIR)/man1
 	install bin/plm $(BINDIR)
 	install libexec/playlist-manager/* $(PLMBINDIR)
 	install man/man1/* $(MANDIR)/man1
+
+uninstall:
+	rm -rf $(BINDIR)/plm $(PLMBINDIR) $(MANDIR)/man1/plm.1 $(MANDIR)/man1/plm-*.1 $(MANDIR)/cat1/plm.1 $(MANDIR)/cat1/plm-*.1
