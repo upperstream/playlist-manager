@@ -5,7 +5,8 @@
 .Nm plm
 .Nd manipulates playlist file and associated media files
 .Sh SYNOPSYS
-.Nm plm
+.Nm plm Oo
+.Fl v | -verbose Oc
 .Ar command Oo command_options Oc Ar command_parameters
 .br
 .Nm
@@ -20,6 +21,11 @@ with
 .Ar command_options
 and
 .Cm command_parameters.
+If
+.Fl v
+or
+.Fl -verbose
+option is given, verbose message of the Ar command will be displayed.
 .Pp
 The second synopsys displays a help screen for the
 .I command

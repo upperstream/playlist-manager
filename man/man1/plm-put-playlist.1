@@ -5,7 +5,8 @@
 .Nm plm-put-playlist
 .Nd copy playlist files and associated media files from PC to device
 .Sh SYNOPSYS
-.Nm plm put-playlist
+.Nm plm put-playlist Oo
+.Fl v | -verbose Oc
 .Ar dest
 .Ar playlist
 .Ar [ ... ]
@@ -23,6 +24,13 @@ The backslash (
 ) characters in playlist files are replaced with the forward slash (
 .Sq /
 ) characters during transfer.
+.Pp
+When
+.Fl v
+or
+.Fl -verbose
+option is given, playlist files and media files to copy, and the numbers
+of the copied files are displayed.
 .Pp
 The second synopsys displays the help screen and quits.
 .Sh EXIT STATUS
