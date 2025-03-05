@@ -194,7 +194,7 @@ fn test_put_playlist_multiple() {
     assert
         .success()
         .stdout(predicate::str::contains("Number of copied playlists: 2"))
-        .stdout(predicate::str::contains("Number of copied media files: 6"));
+        .stdout(predicate::str::contains("Number of copied media files: 4"));
 
     // Verify both playlists were copied
     assert!(dest_dir.join("playlist.m3u8").exists());

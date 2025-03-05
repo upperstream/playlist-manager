@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -109,15 +110,59 @@ fn copy_media_files(
     Ok(n_files)
 }
 
-/// Copy a playlist file and its associated media files
-fn copy_playlist(playlist: &str, dest_basedir: &str, verbose: bool) -> Result<usize> {
+/// Extract media files from a playlist
+fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
     let playlist_path = Path::new(playlist);
     let src_basedir = playlist_path
         .parent()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| ".".to_string());
 
+    let file =
+        File::open(playlist).with_context(|| format!("Failed to open playlist: {}", playlist))?;
+    let reader = BufReader::new(file);
+
+    let media_files = reader
+        .lines()
+        .filter_map(Result::ok)
+        .map(|line| {
+            // Remove BOM if present
+            let line = if line.starts_with('\u{feff}') {
+                line[3..].to_string()
+            } else {
+                line
+            };
+
+            // Remove carriage return if present
+            let line = if line.ends_with('\r') {
+                line[..line.len() - 1].to_string()
+            } else {
+                line
+            };
+
+            line
+        })
+        .filter(|line| {
+            // Skip comments and empty lines
+            if line.starts_with('#') || line.is_empty() {
+                return false;
+            }
+            true
+        })
+        .map(|line| {
+            // Replace backslashes with forward slashes
+            line.replace('\\', "/")
+        })
+        .collect();
+
+    Ok((src_basedir, media_files))
+}
+
+/// Copy a playlist file to the destination
+fn copy_playlist_file(playlist: &str, dest_basedir: &str, verbose: bool) -> Result<()> {
+    let playlist_path = Path::new(playlist);
     let dest_dir = PathBuf::from(dest_basedir);
+
     if !dest_dir.exists() {
         fs::create_dir_all(&dest_dir)
             .with_context(|| format!("Failed to create directory: {}", dest_dir.display()))?;
@@ -165,46 +210,46 @@ fn copy_playlist(playlist: &str, dest_basedir: &str, verbose: bool) -> Result<us
         })?;
     }
 
-    // Process media files
-    let file =
-        File::open(playlist).with_context(|| format!("Failed to open playlist: {}", playlist))?;
-    let reader = BufReader::new(file);
+    Ok(())
+}
 
-    let media_files = reader
-        .lines()
-        .filter_map(Result::ok)
-        .map(|line| {
-            // Remove BOM if present
-            let line = if line.starts_with('\u{feff}') {
-                line[3..].to_string()
-            } else {
-                line
-            };
+/// Process a playlist file and its associated media files
+fn process_playlist(
+    playlist: &str,
+    dest_basedir: &str,
+    verbose: bool,
+    media_files_map: &mut Vec<(String, HashSet<String>)>
+) -> Result<()> {
+    print_message(
+        verbose,
+        "Processing playlist \"{}\"",
+        &[playlist],
+    );
 
-            // Remove carriage return if present
-            let line = if line.ends_with('\r') {
-                line[..line.len() - 1].to_string()
-            } else {
-                line
-            };
+    // Copy the playlist file
+    copy_playlist_file(playlist, dest_basedir, verbose)?;
 
-            line
-        })
-        .filter(|line| {
-            // Skip comments and empty lines
-            if line.starts_with('#') || line.is_empty() {
-                return false;
-            }
-            true
-        })
-        .map(|line| {
-            // Replace backslashes with forward slashes
-            line.replace('\\', "/")
-        });
+    // Extract media files
+    let (src_basedir, files) = extract_media_files(playlist)?;
 
-    let n_files = copy_media_files(&src_basedir, dest_basedir, media_files, verbose)?;
+    // Add to the media files map
+    let entry = media_files_map.iter_mut().find(|(base, _)| *base == src_basedir);
 
-    Ok(n_files)
+    if let Some((_, files_set)) = entry {
+        // Add files to existing set
+        for file in files {
+            files_set.insert(file);
+        }
+    } else {
+        // Create new entry
+        let mut files_set = HashSet::new();
+        for file in files {
+            files_set.insert(file);
+        }
+        media_files_map.push((src_basedir, files_set));
+    }
+
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -219,8 +264,9 @@ fn main() -> Result<()> {
     };
 
     let mut n_playlists = 0;
-    let mut n_files = 0;
+    let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
 
+    // First, process all playlists and collect media files
     for playlist in &cli.playlists {
         print_message(
             cli.verbose,
@@ -228,13 +274,33 @@ fn main() -> Result<()> {
             &[playlist, &dest_dir],
         );
 
-        match copy_playlist(playlist, &dest_dir, cli.verbose) {
-            Ok(files) => {
-                n_files += files;
+        match process_playlist(playlist, &dest_dir, cli.verbose, &mut media_files_map) {
+            Ok(_) => {
                 n_playlists += 1;
             }
             Err(e) => {
                 eprintln!("Error processing playlist {}: {}", playlist, e);
+                process::exit(1);
+            }
+        }
+    }
+
+    // Now copy all unique media files
+    let mut n_files = 0;
+
+    print_message(
+        cli.verbose,
+        "Copying {} unique media files",
+        &[&media_files_map.iter().map(|(_, files)| files.len()).sum::<usize>().to_string()],
+    );
+
+    for (src_basedir, files) in media_files_map {
+        match copy_media_files(&src_basedir, &dest_dir, files.into_iter(), cli.verbose) {
+            Ok(files) => {
+                n_files += files;
+            }
+            Err(e) => {
+                eprintln!("Error copying media files: {}", e);
                 process::exit(1);
             }
         }

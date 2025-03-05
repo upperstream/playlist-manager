@@ -1,6 +1,6 @@
 ISC License
 
-Copyright (C) 2024 Upperstream.
+Copyright (C) 2024, 2025 Upperstream.
 
 Permission to use, copy, modify, and/or distribute this software for
 any purpose with or without fee is hereby granted, provided that the

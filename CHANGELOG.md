@@ -2,13 +2,6 @@
 
 ## [Unreleased][]
 
-* Fixed
-  * Fix typo in `plm.1` man page where it referred to "plm-put-command"
-    instead of "plm-put-playlist"
-  * Update date in `plm.1` man page to match `plm-put-playlist.1`
-  * Fix inconsistency in `plm` shell script where `-v` option set
-    verbosity to `-v1` instead of `-v` as expected by the Rust
-    implementation
 * Added
   * Add verbose option to `plm` and `plm-put-playlist` commands in man
     pages
@@ -20,6 +13,17 @@
 * Changed
   * Update Makefile to install Rust binary instead of shell script
   * Modify Makefile to handle installation of .exe files on Windows
+  * Optimize `plm-put-playlist` to avoid copying the same media file
+    multiple times when referenced in multiple playlists
+  * Update integration test to reflect the optimized behaviour of
+    `plm-put-playlist`
+* Fixed
+  * Fix typo in `plm.1` man page where it referred to "plm-put-command"
+    instead of "plm-put-playlist"
+  * Update date in `plm.1` man page to match `plm-put-playlist.1`
+  * Fix inconsistency in `plm` shell script where `-v` option set
+    verbosity to `-v1` instead of `-v` as expected by the Rust
+    implementation
 
 ## [0.0.4][] - 20241102
 
