@@ -7,6 +7,10 @@ absdir() {
 	cd - >/dev/null || return $?
 }
 
+print_version() {
+	printf "playlist-manager version %s\n" "@VERSION@"
+}
+
 program=${0##*/}
 cwd=$(absdir "${0%/*}")
 plm_exec_dir=${PLM_EXEC_DIR:-$(absdir $cwd/../libexec/playlist-manager)}
@@ -19,6 +23,7 @@ print_usage() {
 	  $program put-playlist [options] dest playlist
 	  $program help [subcommand]
 	  $program -H | --help
+	  $program -V | --version
 
 	put-playlist
 	    : put playlist file and associated media files into device
@@ -27,6 +32,8 @@ print_usage() {
 	      omitted, help for 'plm' itself is displayed.
 	-H | --help
 	    : print help screen for 'plm' command and quit.
+	-V | --version
+	    : print version information and quit.
 	EOF
 }
 
@@ -49,13 +56,15 @@ longopt() {
 	case "$1" in
 		help) print_usage; exit;;
 		verbose) verbosity='-v';;
+		version) print_version; exit;;
 		*) printf "%s: Unknown option '--%s'\n" "$0" "$1"; exit 255;;
 	esac
 }
 
-while getopts ":vH-:" opt; do
+while getopts ":vHV-:" opt; do
 	case "$opt" in
 		H) print_usage; exit;;
+		V) print_version; exit;;
 		v) verbosity='-v';;
 		-) longopt "$OPTARG";;
 		?) printf "%s: Unknown option '-%s'\n" "$0" "$OPTARG"; exit 255;;

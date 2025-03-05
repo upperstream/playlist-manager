@@ -12,6 +12,8 @@
   * Add `test` target to Makefile to run integration tests
   * Add `build` target to Makefile to build Rust binaries
   * Add `clean` target to Makefile to remove build artifacts
+  * Add `-V/--version` option to `plm` command to display version
+    information
 * Changed
   * Update Makefile to install Rust binary instead of shell script
   * Modify Makefile to handle installation of .exe files on Windows

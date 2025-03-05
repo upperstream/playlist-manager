@@ -31,7 +31,8 @@ help:
 
 install: build
 	mkdir -p $(BINDIR) $(PLMBINDIR) $(MANDIR)/man1
-	install bin/plm $(BINDIR)
+	awk -f embed_version.awk bin/plm > $(BINDIR)/plm
+	chmod +x $(BINDIR)/plm
 	install libexec/playlist-manager/* $(PLMBINDIR)
 	install man/man1/* $(MANDIR)/man1
 

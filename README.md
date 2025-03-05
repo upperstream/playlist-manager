@@ -13,19 +13,20 @@ associated media files between PC and audio playback device.
 
 * POSIX compliant shell
 
-### For building from source
+### For building from source and installation
 
 * Rust and Cargo (Rust package manager)
-* `make`
+* `awk`
+* `grep`
 * `install`
+* `make`
+* `sed`
 
 ## Install
 
 Execute `make PREFIX=... install` using either BSD make or GNU make to
 install Playlist Manager.  Assigning PREFIX value specifies the
 destination of installation.  Default value is `/usr/local`.
-
-In order to perform installation, `make` and `install` are required.
 
 ## Uninstall
 
