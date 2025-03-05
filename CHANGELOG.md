@@ -2,6 +2,13 @@
 
 ## [Unreleased][]
 
+* Fixed
+  * Fix typo in `plm.1` man page where it referred to "plm-put-command"
+    instead of "plm-put-playlist"
+  * Update date in `plm.1` man page to match `plm-put-playlist.1`
+  * Fix inconsistency in `plm` shell script where `-v` option set
+    verbosity to `-v1` instead of `-v` as expected by the Rust
+    implementation
 * Added
   * Add verbose option to `plm` and `plm-put-playlist` commands in man
     pages

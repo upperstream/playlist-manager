@@ -56,7 +56,7 @@ longopt() {
 while getopts ":vH-:" opt; do
 	case "$opt" in
 		H) print_usage; exit;;
-		v) verbosity='-v1';;
+		v) verbosity='-v';;
 		-) longopt "$OPTARG";;
 		?) printf "%s: Unknown option '-%s'\n" "$0" "$OPTARG"; exit 255;;
 	esac
