@@ -1,6 +1,36 @@
 {
     "cSpell.words": [
+        "absdir",
+        "anstream",
+        "anstyle",
+        "autocfg",
+        "bindgen",
+        "bitflags",
+        "bstr",
+        "colorchoice",
+        "corasick",
         "Debenhams",
-        "POSIX"
+        "difflib",
+        "errno",
+        "fastrand",
+        "getrandom",
+        "gnullvm",
+        "libc",
+        "libexec",
+        "longopt",
+        "memchr",
+        "msvc",
+        "PLMBINDIR",
+        "POSIX",
+        "proc",
+        "replacen",
+        "rustix",
+        "sdcard",
+        "serde",
+        "strsim",
+        "termtree",
+        "thiserror",
+        "wasi",
+        "wincon"
     ]
 }

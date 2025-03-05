@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased][]
+
+* Added
+  * Add verbose option to `plm` and `plm-put-playlist` commands in man
+    pages
+  * Convert `plm-put-playlist` shell script to Rust program
+  * Add integration tests for `plm-put-playlist`
+  * Add `test` target to Makefile to run integration tests
+  * Add `build` target to Makefile to build Rust binaries
+  * Add `clean` target to Makefile to remove build artifacts
+* Changed
+  * Update Makefile to install Rust binary instead of shell script
+  * Modify Makefile to handle installation of .exe files on Windows
+
 ## [0.0.4][] - 20241102
 
 * Added
@@ -18,12 +32,14 @@
 
 ## [0.0.1][] - 2024-10-29
 
-* Add
+* Added
   * New release
   * Supported feature:
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
+[Unreleased]:
+  https://github.com/upperstream/playlist-manager/compare/0.0.4...HEAD
 [0.0.4]:
   https://github.com/upperstream/playlist-manager/compare/0.0.3...0.0.4
 [0.0.3]:

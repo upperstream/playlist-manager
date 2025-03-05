@@ -1,6 +1,7 @@
 *.1     eol=lf
 *.json  eol=lf
 *.md	eol=lf
+*.rs    eol=lf
 *.txt   eol=lf
 Makefile    eol=lf
 plm*    eol=lf

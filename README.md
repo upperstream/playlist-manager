@@ -9,11 +9,15 @@ associated media files between PC and audio playback device.
 
 ## Prerequisites
 
+### For running the application
+
 * POSIX compliant shell
-* `cp`
-* `grep`
-* `mkdir`
-* `sed`
+
+### For building from source
+
+* Rust and Cargo (Rust package manager)
+* `make`
+* `install`
 
 ## Install
 
