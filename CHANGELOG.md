@@ -3,6 +3,8 @@
 ## [Unreleased][]
 
 * Added
+  * Add `-l/--lyrics` option to `plm-put-playlist` command to copy
+    lyrics files (with `.lrc` extension) along with media files
   * Add verbose option to `plm` and `plm-put-playlist` commands in man
     pages
   * Convert `plm-put-playlist` shell script to Rust program

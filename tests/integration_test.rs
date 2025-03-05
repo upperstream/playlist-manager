@@ -34,6 +34,16 @@ fn setup_test_directory() -> TempDir {
         "test content 4",
     );
 
+    // Create lyrics files for some media files
+    create_test_file(
+        &music_dir.join("artist1/album1/title1.lrc"),
+        "[00:00.00] Lyrics for title1",
+    );
+    create_test_file(
+        &music_dir.join("artist2/album2/title1.lrc"),
+        "[00:00.00] Lyrics for another title1",
+    );
+
     // Create playlist file
     let playlist_content = "artist1/album1/title1.flac\nartist1/album1/title2.flac\nartist2/album1/title1.flac\nartist2/album2/title1.flac";
     create_test_file(&music_dir.join("playlist.m3u8"), playlist_content);
@@ -231,4 +241,50 @@ fn test_put_playlist_missing_args() {
     let assert = cmd.arg(dest_dir.to_str().unwrap()).assert();
 
     assert.failure();
+}
+
+#[test]
+fn test_put_playlist_with_lyrics() {
+    let temp_dir = setup_test_directory();
+    let music_dir = temp_dir.path().join("MUSIC");
+    let dest_dir = temp_dir.path().join("DEST");
+
+    fs::create_dir_all(&dest_dir).unwrap();
+
+    let playlist_path = music_dir.join("playlist.m3u8");
+
+    let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+    let assert = cmd
+        .arg("--lyrics")
+        .arg(dest_dir.to_str().unwrap())
+        .arg(playlist_path.to_str().unwrap())
+        .assert();
+
+    assert
+        .success()
+        .stdout(predicate::str::contains("Number of copied playlists: 1"));
+
+    // Verify media files were copied
+    assert!(dest_dir.join("artist1/album1/title1.flac").exists());
+    assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+    assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+    assert!(dest_dir.join("artist2/album2/title1.flac").exists());
+
+    // Verify lyrics files were copied
+    assert!(dest_dir.join("artist1/album1/title1.lrc").exists());
+    assert!(dest_dir.join("artist2/album2/title1.lrc").exists());
+
+    // Verify lyrics files have correct content
+    assert!(verify_file(
+        &dest_dir.join("artist1/album1/title1.lrc"),
+        "[00:00.00] Lyrics for title1"
+    ));
+    assert!(verify_file(
+        &dest_dir.join("artist2/album2/title1.lrc"),
+        "[00:00.00] Lyrics for another title1"
+    ));
+
+    // Verify lyrics files don't exist for files that didn't have them
+    assert!(!dest_dir.join("artist1/album1/title2.lrc").exists());
+    assert!(!dest_dir.join("artist2/album1/title1.lrc").exists());
 }

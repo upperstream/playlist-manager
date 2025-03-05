@@ -44,6 +44,7 @@ Default value is `/usr/local`.
 There are couples of features to add:
 
 * Copy albums from a PC to a device
+* Copy lyrics file along with media file
 * Delete playlist files and associated media files on a device
 * Delete albums on a device
 * Create a playlist file with associated media files on a PC

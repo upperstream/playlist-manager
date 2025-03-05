@@ -17,6 +17,10 @@ struct Cli {
     #[arg(short = 'v', long = "verbose", action = ArgAction::SetTrue)]
     verbose: bool,
 
+    /// Copy lyrics files (.lrc) along with media files
+    #[arg(short = 'l', long = "lyrics", action = ArgAction::SetTrue)]
+    lyrics: bool,
+
     /// Destination to put playlists and media files into
     #[arg(required = true)]
     dest: String,
@@ -72,6 +76,7 @@ fn copy_media_files(
     dest_basedir: &str,
     files: impl Iterator<Item = String>,
     verbose: bool,
+    copy_lyrics: bool,
 ) -> Result<usize> {
     let mut n_files = 0;
 
@@ -105,6 +110,36 @@ fn copy_media_files(
         })?;
 
         n_files += 1;
+
+        // If lyrics option is enabled, try to copy the corresponding .lrc file
+        if copy_lyrics {
+            if let Some(stem) = file_path.file_stem() {
+                let lyrics_filename = format!("{}.lrc", stem.to_string_lossy());
+                let lyrics_path = Path::new(src_basedir).join(dir_part).join(&lyrics_filename);
+
+                if lyrics_path.exists() {
+                    let dest_lyrics_file = dest_dir.join(&lyrics_filename);
+
+                    print_message(
+                        verbose,
+                        "Copy lyrics \"{}\" to \"{}\"",
+                        &[&lyrics_path.to_string_lossy(), &dest_lyrics_file.to_string_lossy()],
+                    );
+
+                    fs::copy(&lyrics_path, &dest_lyrics_file).with_context(|| {
+                        format!(
+                            "Failed to copy lyrics {} to {}",
+                            lyrics_path.display(),
+                            dest_lyrics_file.display()
+                        )
+                    })?;
+
+                    n_files += 1;
+                } else if verbose {
+                    eprintln!("No lyrics file found for: {}", src_file.display());
+                }
+            }
+        }
     }
 
     Ok(n_files)
@@ -295,7 +330,7 @@ fn main() -> Result<()> {
     );
 
     for (src_basedir, files) in media_files_map {
-        match copy_media_files(&src_basedir, &dest_dir, files.into_iter(), cli.verbose) {
+        match copy_media_files(&src_basedir, &dest_dir, files.into_iter(), cli.verbose, cli.lyrics) {
             Ok(files) => {
                 n_files += files;
             }

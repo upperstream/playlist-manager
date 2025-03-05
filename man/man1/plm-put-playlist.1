@@ -6,7 +6,8 @@
 .Nd copy playlist files and associated media files from PC to device
 .Sh SYNOPSYS
 .Nm plm put-playlist Oo
-.Fl v | -verbose Oc
+.Fl v | -verbose Oc Oo
+.Fl l | -lyrics Oc
 .Ar dest
 .Ar playlist
 .Ar [ ... ]
@@ -34,6 +35,13 @@ or
 .Fl -verbose
 option is given, playlist files and media files to copy, and the numbers
 of the copied files are displayed.
+.Pp
+When
+.Fl l
+or
+.Fl -lyrics
+option is given, lyrics files (with .lrc extension) are copied along with
+media files if they exist in the same directory as the media files.
 .Pp
 The second synopsys displays the help screen and quits.
 .Pp
@@ -79,6 +87,9 @@ playlist file and media files associated to the playlist into
 .Pa /mnt/sdcard/MUSIC
 directory:
 .Dl plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
+.Pp
+To copy lyrics files along with media files:
+.Dl plm put-playlist --lyrics /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 .Pp
 and results in the following files on the SD card:
 .Pp
