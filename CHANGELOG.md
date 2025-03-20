@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased][]
+## [0.1.0][] - 2025-03-20
 
 * Added
   * Add `-l/--lyrics` option to `plm-put-playlist` command to copy
@@ -14,6 +14,8 @@
   * Add `clean` target to Makefile to remove build artifacts
   * Add `-V/--version` option to `plm` command to display version
     information
+  * Add `plm-delete-playlist` command to delete playlist files and
+    associated media files from device
 * Changed
   * Update Makefile to install Rust binary instead of shell script
   * Modify Makefile to handle installation of .exe files on Windows
@@ -21,6 +23,8 @@
     multiple times when referenced in multiple playlists
   * Update integration test to reflect the optimized behaviour of
     `plm-put-playlist`
+  * Enhance `clean` target in Makefile to also remove executables from
+    the libexec/playlist-manager directory
 * Fixed
   * Fix typo in `plm.1` man page where it referred to "plm-put-command"
     instead of "plm-put-playlist"
@@ -29,7 +33,7 @@
     verbosity to `-v1` instead of `-v` as expected by the Rust
     implementation
 
-## [0.0.4][] - 20241102
+## [0.0.4][] - 2024-11-02
 
 * Added
   * Add uninstallation to the [Makefile](Makefile)
@@ -53,8 +57,8 @@
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
-[Unreleased]:
-  https://github.com/upperstream/playlist-manager/compare/0.0.4...HEAD
+[0.1.0]:
+  https://github.com/upperstream/playlist-manager/compare/0.0.4...0.1.0
 [0.0.4]:
   https://github.com/upperstream/playlist-manager/compare/0.0.3...0.0.4
 [0.0.3]:

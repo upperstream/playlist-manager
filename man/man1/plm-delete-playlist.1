@@ -1,0 +1,104 @@
+.Dd March 6, 2025
+.Dt PLM-DELETE-PLAYLIST 1
+.Os Playlist Manager
+.Sh NAME
+.Nm plm-delete-playlist
+.Nd delete playlist files and associated media files from device
+.Sh SYNOPSYS
+.Nm plm delete-playlist Oo
+.Fl m | -media Oc Oo
+.Fl v | -verbose Oc
+.Ar playlist
+.Ar [ ... ]
+.br
+.Nm
+.Fl H | -help
+.br
+.Nm
+.Fl V | -version
+.Sh DESCRIPTION
+The first synopsys deletes playlist files specified by
+.Ar playlist
+parameter.
+When
+.Fl m
+or
+.Fl -media
+option is given, media files (and lyrics files with `.lrc` extension)
+associated with the
+.Ar playlist
+are also deleted.
+.Pp
+When
+.Fl v
+or
+.Fl -verbose
+option is given, playlist files and media files to copy, and the numbers
+of the copied files are displayed.
+.Pp
+.Pp
+The second synopsys displays the help screen and quits.
+.Pp
+The third synopsys displays the version information and quits.
+.Sh EXIT STATUS
+.Bl -tag -compact
+.It 0
+Command successfully exits.
+.It 255
+Command fails with invalid command line arguments.
+.El
+.Sh EXAMPLES
+Suppose the following files are on the device:
+.Pp
+.Bd -literal -offset indent
+/mnt/sdcard/MUSIC
+  +-- artist1
+  |   +-- album1
+  |       +-- title1.flac
+  |       +-- title2.flac
+  |       +-- title2.lrc
+  +-- artist2
+  |   +-- album1
+  |   |   +-- title1.flac
+  |   +-- album2
+  |       +-- title1.flac
+  +-- playlist1.m3u8
+.Ed
+.Pp
+and the playlist
+.Pa playlist.m3u8
+contains:
+.Bd -literal -offset indent
+artist1/album1/title1.flac
+artist1/album1/title2.flac
+.Ed
+.Pp
+the following command deletes just
+.Pa /mnt/sdcard/MUSIC/playlist.m3u8
+playlist file:
+.Dl plm delete-playlist /mnt/sdcard/MUSIC/playlist.m3u8
+.Pp
+while the next command:
+.Dl plm delete-playlist --media /mnt/sdcard/MUSIC/playlist.m3u8
+.Pp
+deletes the following
+.Bd -literal -offset indent
+artist1/album1/title1.flac
+artist1/album1/title2.flac
+artist1/album1/title2.lrc
+.Ed
+.Pp
+files in the
+.Pa /mnt/sdcard/MUSIC/
+directory.
+After deleting media files, ascendant directories are recursively
+deleted until the directory where the
+.Ar playlist
+resides in if they are empty.
+In this example, the following directories will be deleted:
+.Bd -literal -offset indent
+/mnt/sdcard/MUSIC/artist1/album1
+/mnt/sdcard/MUSIC/artist1
+.Ed
+.Sh SEE ALSO
+.Xr plm 1

@@ -21,12 +21,15 @@ print_usage() {
 	cat <<-EOF
 	Usage:
 	  $program put-playlist [options] dest playlist
+	  $program delete-playlist [options] playlist [...]
 	  $program help [subcommand]
 	  $program -H | --help
 	  $program -V | --version
 
 	put-playlist
 	    : put playlist file and associated media files into device
+	delete-playlist
+	    : delete playlist files and associated media files from device
 	help [subcommand]
 	    : print help screen of subcommand and quit.  If subcommand is
 	      omitted, help for 'plm' itself is displayed.
@@ -84,5 +87,6 @@ shift
 case "$subcommand" in
 	help) help "$@"; exit;;
 	put-playlist) exec_subcommand "$subcommand" $verbosity "$@";;
+	delete-playlist) exec_subcommand "$subcommand" $verbosity "$@";;
 	*) printf "%s: Unknown command '%s'\n" "$0" "$subcommand"; exit 255;;
 esac

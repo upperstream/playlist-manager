@@ -6,6 +6,7 @@ associated media files between PC and audio playback device.
 ## Feature
 
 * Copy playlist files and associated media files from a PC to a device.
+* Delete playlist files and associated media files from a device.
 
 ## Prerequisites
 
@@ -46,7 +47,6 @@ There are couples of features to add:
 
 * Copy albums from a PC to a device
 * Copy lyrics file along with media file
-* Delete playlist files and associated media files on a device
 * Delete albums on a device
 * Create a playlist file with associated media files on a PC
 * Direct access to MTP device

@@ -60,6 +60,13 @@ parameter.
 See
 .Xr plm-put-playlist 1
 for details.
+.It Cm delete-playlist Oo Fl m | -media Oc Ar playlist Op Ar ...
+Delete the specified
+.Ar playlist
+files and optionally delete the media files referenced in the playlists.
+See
+.Xr plm-delete-playlist 1
+for details.
 .It Cm help Op Ar command
 Display a help screen for
 .Ar command
@@ -81,4 +88,5 @@ Command fails with invalid command line arguments.
 .El
 .Sh SEE ALSO
 .Xr plm-help 1 ,
-.Xr plm-put-playlist 1
+.Xr plm-put-playlist 1 ,
+.Xr plm-delete-playlist 1

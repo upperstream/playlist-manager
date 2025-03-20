@@ -44,6 +44,11 @@ build:
 	else \
 		cp target/release/plm-put-playlist libexec/playlist-manager/; \
 	fi
+	-if [ -f target/release/plm-delete-playlist.exe ]; then \
+		cp target/release/plm-delete-playlist.exe libexec/playlist-manager/; \
+	else \
+		cp target/release/plm-delete-playlist libexec/playlist-manager/; \
+	fi
 
 uninstall:
 	rm -rf $(BINDIR)/plm $(PLMBINDIR) $(MANDIR)/man1/plm.1 $(MANDIR)/man1/plm-*.1 $(MANDIR)/cat1/plm.1 $(MANDIR)/cat1/plm-*.1
@@ -53,3 +58,5 @@ test:
 
 clean:
 	cargo clean
+	-rm -f libexec/playlist-manager/plm-put-playlist libexec/playlist-manager/plm-put-playlist.exe
+	-rm -f libexec/playlist-manager/plm-delete-playlist libexec/playlist-manager/plm-delete-playlist.exe
