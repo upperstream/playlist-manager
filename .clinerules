@@ -1,0 +1,25 @@
+# Cline rules
+
+## Execution environment
+
+On Windows, use Git Bash or MSYS64 instead of PowerShell to ensure
+UNIX-style commands can be executed.
+
+## Test
+
+When modifying any implementation, update the corresponding integration
+tests to ensure they cover the changes made.
+
+## Documentation
+
+When modifying any implementation, update the `README.md` document,
+manual pages, and `CHANGELOG.md` to reflect the changes.
+
+## Text file standards
+
+* Use "double space" style except for manual pages.
+* Prefer British spelling over American spelling except for proper
+  nouns.
+* Lines should be wrapped at 72 characters (never exceed 72 characters
+  unless the line is preformatted).  Trailing punctuation may appear
+  after the 72-character limit if necessary.
