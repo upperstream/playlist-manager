@@ -12,6 +12,9 @@
     write the list of failed files to a specified file when used with
     `-k/--keep-going` option, with "P " prefix for failed playlists and
     "M " prefix for failed media files
+  * Add `-r/--retry` option to `plm-put-playlist` command to retry
+    failed operations from an error file produced by `-e/--error-files`
+    option
 * Changed
   * Improve build process
   * Remove error message when lyrics file is not found
@@ -26,6 +29,10 @@
   * Modify `plm-put-playlist` to process copying media files for each
     playlist one-by-one while still maintaining the optimisation to
     avoid copying duplicate files
+  * Update man page and documentation to add a separate synopsis for the
+    retry operation (`-r/--retry` option) in `plm-put-playlist` command
+  * Update documentation to reflect that the `-r/--retry` option works with
+    the `-l/--lyrics` option in `plm-put-playlist` command
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 

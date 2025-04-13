@@ -10,14 +10,26 @@ duplicate files.
 
 ## Command Structure
 
+For normal operation:
+
 ```
 plm put-playlist [OPTIONS] DEST PLAYLIST [...]
+```
+
+For retry operation:
+
+```
+plm put-playlist -r FILE [-v] [-l] [-e FILE] [-k] DEST
 ```
 
 or directly:
 
 ```
 plm-put-playlist [OPTIONS] DEST PLAYLIST [...]
+```
+
+```
+plm-put-playlist -r FILE [-v] [-l] [-e FILE] [-k] DEST
 ```
 
 ## Options
@@ -27,7 +39,8 @@ plm-put-playlist [OPTIONS] DEST PLAYLIST [...]
   media files
 - `-k, --keep-going`: Continue operation despite errors
 - `-e, --error-files FILE`: Write list of failed files to specified file
-  (must be used with `--keep-going`)
+  (must be used with `--keep-going` unless used with `--retry`)
+- `-r, --retry FILE`: Retry failed operations from error file
 - `-H, --help`: Display help information and exit
 - `-V, --version`: Display version information and exit
 
@@ -41,7 +54,12 @@ plm-put-playlist [OPTIONS] DEST PLAYLIST [...]
 ```mermaid
 flowchart TD
     A[Start] --> B[Parse Command Line]
-    B --> C[Validate Destination Directory]
+    B --> B1{Retry Mode?}
+    B1 -->|Yes| B2[Parse Error File]
+    B2 --> B3[Process Playlists]
+    B3 --> B4[Process Media Files]
+    B4 --> Q
+    B1 -->|No| C[Validate Destination Directory]
     C --> D[For Each Playlist]
     D --> E[Copy Playlist File]
     E --> F{Error?}
@@ -140,8 +158,39 @@ either "P " for failed playlists or "M " for failed media files, and the entries
 are listed in the order they failed.  If the file cannot be created, the command
 will print an error message to stderr and exit with status code 2.
 
-If the `-e, --error-files` option is used without the `-k, --keep-going` option,
-the command will print an error message to stderr and exit with status code 255.
+If the `-e, --error-files` option is used without the `-k, --keep-going` option
+and not with the `-r, --retry` option, the command will print an error message
+to stderr and exit with status code 255.
+
+### Retry Functionality
+
+When the `-r, --retry` option is specified, the command will read the error file
+produced by a previous run with the `-e, --error-files` option and retry the
+failed operations. The command syntax in this case is:
+
+```
+plm-put-playlist -r FILE [-v] [-l] [-e FILE] [-k] DEST
+```
+
+The operation is done as follows:
+
+1. Read one line from the error file.
+2. If the line is prefixed by "M", it is a media file to copy. Copy the media
+   file and read the next line. This is repeated until the file reaches the end
+   or the next line is prefixed by "P".
+3. If the line is prefixed by "P", it is a playlist to copy. Copy the playlist
+   file. Then read the next line (say, line B) and if the next line is prefixed
+   by "M", copy the media file and repeat until the file reaches the end or the
+   line prefixed by "P". If the line B is prefixed by "P" (that is, two
+   consecutive lines are prefixed by "P"), copy media files in the first
+   playlist.
+4. When all files are copied, print the summary (the number of playlist files
+   and the number of media files as the standard operation) to stdout.
+
+The `-e, --error-files` option can be given with the `-r, --retry` option at the
+same time. A new error file is created for the operation of the `-r, --retry`
+option. If the same file is specified by `-r` and `-e`, the command will print
+an error message to stderr and exit with status code 255.
 
 ## Examples
 
@@ -149,7 +198,7 @@ the command will print an error message to stderr and exit with status code 255.
 
 Copy a single playlist and its media files:
 
-```bash
+```
 plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 ```
 
@@ -157,7 +206,7 @@ plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 
 Copy multiple playlists and their media files:
 
-```bash
+```
 plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
 ```
 
@@ -165,7 +214,7 @@ plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
 
 Copy a playlist, its media files, and corresponding lyrics files:
 
-```bash
+```
 plm put-playlist --lyrics /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 ```
 
@@ -173,7 +222,7 @@ plm put-playlist --lyrics /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 
 Copy with verbose output:
 
-```bash
+```
 plm put-playlist --verbose /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 ```
 
@@ -181,7 +230,7 @@ plm put-playlist --verbose /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 
 Copy playlists and media files, continuing despite errors:
 
-```bash
+```
 plm put-playlist --keep-going /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
 ```
 
@@ -189,8 +238,32 @@ plm put-playlist --keep-going /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/p
 
 Copy playlists and media files, continuing despite errors and logging failed files:
 
-```bash
+```
 plm put-playlist --keep-going --error-files errors.log /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
+```
+
+### Retry Failed Operations
+
+Retry failed operations from an error file:
+
+```
+plm put-playlist --retry errors.log /mnt/sdcard/MUSIC
+```
+
+### Retry with Lyrics
+
+Retry failed operations and copy lyrics files along with media files:
+
+```
+plm put-playlist --retry errors.log --lyrics /mnt/sdcard/MUSIC
+```
+
+### Retry with New Error Log
+
+Retry failed operations and create a new error log for operations that still fail:
+
+```
+plm put-playlist --retry errors.log --keep-going --error-files new-errors.log /mnt/sdcard/MUSIC
 ```
 
 ## Exit Status
@@ -213,8 +286,11 @@ The implementation is organised into several key functions:
 5. `copy_media_files()`: Copies media files from source to destination
 6. `filter_already_copied_files()`: Filters out files that have already
    been copied
-7. `abs_dir()`: Gets the absolute path of a directory
-8. `print_message()`: Prints a message if verbose mode is enabled
+7. `parse_error_file()`: Parses an error file and extracts failed playlists
+   and media files
+8. `retry_operations()`: Retries failed operations from an error file
+9. `abs_dir()`: Gets the absolute path of a directory
+10. `print_message()`: Prints a message if verbose mode is enabled
 
 ## Optimisation
 

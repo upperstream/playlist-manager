@@ -14,6 +14,14 @@
 .Ar playlist
 .Ar [ ... ]
 .br
+.Nm plm put-playlist
+.Fl r | -retry Ar file Oo
+.Fl v | -verbose Oc Oo
+.Fl l | -lyrics Oc Oo
+.Fl k | -keep-going Oc Oo
+.Fl e | -error-files Ar file Oc
+.Ar dest
+.br
 .Nm
 .Fl H | -help
 .br
@@ -25,6 +33,12 @@ The first synopsys copies playlist file specified by
 parameter and associated media files from PC to device that
 .Ar dest
 parameter points to.
+.Pp
+The second synopsys retries failed operations from an error file when
+.Fl r
+or
+.Fl -retry
+option is given.
 The backslash (
 .Sq \e
 ) characters in playlist files are replaced with the forward slash (
@@ -67,7 +81,11 @@ option is given, it must be used along with
 .Fl k
 or
 .Fl -keep-going
-option. If used without the keep-going option, the command will print an error
+option, unless used with
+.Fl r
+or
+.Fl -retry
+option. If used without the keep-going option and not with the retry option, the command will print an error
 message to stderr and exit with status code 255. When used correctly, the command
 will write the list of playlist files and media files that failed to copy to the
 specified file. Each line in the error file is prefixed with either "P " for
@@ -75,9 +93,39 @@ failed playlists or "M " for failed media files, and the entries are listed in
 the order they failed. If the file cannot be created, the command will print an
 error message to stderr and exit with status code 2.
 .Pp
-The second synopsys displays the help screen and quits.
+When
+.Fl r
+or
+.Fl -retry
+option is given, the command will read the specified error file (produced by a previous run with
+.Fl e
+or
+.Fl -error-files
+option) and retry the failed operations.
 .Pp
-The third synopsys displays the version information and quits.
+The operation is done as follows:
+.Bl -enum
+.It
+Read one line from the error file.
+.It
+If the line is prefixed by "P", it is a playlist to copy. Copy the playlist file.
+.It
+If the line is prefixed by "M", it is a media file to copy. Copy the media file and read the next line.
+.El
+.Pp
+The
+.Fl e
+option can be given with
+.Fl r
+option at the same time to create a new error file for the retry operation. If the same file is specified by
+.Fl r
+and
+.Fl e
+options, the command will print an error message to stderr and exit with status code 255.
+.Pp
+The third synopsys displays the help screen and quits.
+.Pp
+The fourth synopsys displays the version information and quits.
 .Sh EXIT STATUS
 .Bl -tag -compact
 .It 0
@@ -132,6 +180,12 @@ To continue operation despite errors:
 .Pp
 To log failed files to an error log:
 .Dl plm put-playlist --keep-going --error-files errors.log /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
+.Pp
+To retry failed operations from an error log:
+.Dl plm put-playlist --retry errors.log /mnt/sdcard/MUSIC
+.Pp
+To retry failed operations and create a new error log for operations that still fail:
+.Dl plm put-playlist --retry errors.log --keep-going --error-files new-errors.log /mnt/sdcard/MUSIC
 .Pp
 and results in the following files on the SD card:
 .Pp

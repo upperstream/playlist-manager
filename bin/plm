@@ -21,6 +21,7 @@ print_usage() {
 	cat <<-EOF
 	Usage:
 	  $program put-playlist [options] dest playlist
+	  $program put-playlist -r file [-v] [-l] [-e file] [-k] dest
 	  $program delete-playlist [options] playlist [...]
 	  $program help [subcommand]
 	  $program -H | --help
@@ -28,6 +29,8 @@ print_usage() {
 
 	put-playlist
 	    : put playlist file and associated media files into device
+	put-playlist -r file
+	    : retry failed operations from an error file
 	delete-playlist
 	    : delete playlist files and associated media files from device
 	help [subcommand]
