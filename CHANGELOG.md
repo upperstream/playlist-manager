@@ -13,6 +13,9 @@
       command
     * `tests/delete_playlist_tests.rs` - Tests for the
       `plm-delete-playlist` command
+  * Modify `plm-put-playlist` to process copying media files for each
+    playlist one-by-one while still maintaining the optimization to avoid
+    copying duplicate files
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 

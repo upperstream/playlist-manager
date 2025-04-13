@@ -252,7 +252,7 @@ fn process_playlist(
     dest_basedir: &str,
     verbose: bool,
     media_files_map: &mut Vec<(String, HashSet<String>)>
-) -> Result<()> {
+) -> Result<(String, Vec<String>)> {
     print_message(
         verbose,
         "Processing playlist \"{}\"",
@@ -270,19 +270,31 @@ fn process_playlist(
 
     if let Some((_, files_set)) = entry {
         // Add files to existing set
-        for file in files {
-            files_set.insert(file);
+        for file in &files {
+            files_set.insert(file.clone());
         }
     } else {
         // Create new entry
         let mut files_set = HashSet::new();
-        for file in files {
-            files_set.insert(file);
+        for file in &files {
+            files_set.insert(file.clone());
         }
-        media_files_map.push((src_basedir, files_set));
+        media_files_map.push((src_basedir.clone(), files_set));
     }
 
-    Ok(())
+    Ok((src_basedir, files))
+}
+
+/// Filter out files that have already been copied
+fn filter_already_copied_files(
+    src_basedir: &str,
+    files: &[String],
+    copied_files: &HashSet<(String, String)>
+) -> Vec<String> {
+    files.iter()
+        .filter(|file| !copied_files.contains(&(src_basedir.to_string(), file.to_string())))
+        .cloned()
+        .collect()
 }
 
 fn main() -> Result<()> {
@@ -297,9 +309,11 @@ fn main() -> Result<()> {
     };
 
     let mut n_playlists = 0;
+    let mut n_files = 0;
     let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
+    let mut copied_files: HashSet<(String, String)> = HashSet::new();
 
-    // First, process all playlists and collect media files
+    // Process each playlist and copy its media files one-by-one
     for playlist in &cli.playlists {
         print_message(
             cli.verbose,
@@ -308,32 +322,36 @@ fn main() -> Result<()> {
         );
 
         match process_playlist(playlist, &dest_dir, cli.verbose, &mut media_files_map) {
-            Ok(_) => {
+            Ok((src_basedir, files)) => {
                 n_playlists += 1;
+
+                // Filter out already copied files
+                let files_to_copy = filter_already_copied_files(&src_basedir, &files, &copied_files);
+
+                print_message(
+                    cli.verbose,
+                    "Copying {} media files for playlist \"{}\"",
+                    &[&files_to_copy.len().to_string(), playlist],
+                );
+
+                // Copy files for this playlist
+                match copy_media_files(&src_basedir, &dest_dir, files_to_copy.into_iter(), cli.verbose, cli.lyrics) {
+                    Ok(copied) => {
+                        n_files += copied;
+
+                        // Update copied_files set
+                        for file in files {
+                            copied_files.insert((src_basedir.clone(), file));
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error copying media files for playlist {}: {}", playlist, e);
+                        process::exit(1);
+                    }
+                }
             }
             Err(e) => {
                 eprintln!("Error processing playlist {}: {}", playlist, e);
-                process::exit(1);
-            }
-        }
-    }
-
-    // Now copy all unique media files
-    let mut n_files = 0;
-
-    print_message(
-        cli.verbose,
-        "Copying {} unique media files",
-        &[&media_files_map.iter().map(|(_, files)| files.len()).sum::<usize>().to_string()],
-    );
-
-    for (src_basedir, files) in media_files_map {
-        match copy_media_files(&src_basedir, &dest_dir, files.into_iter(), cli.verbose, cli.lyrics) {
-            Ok(files) => {
-                n_files += files;
-            }
-            Err(e) => {
-                eprintln!("Error copying media files: {}", e);
                 process::exit(1);
             }
         }
