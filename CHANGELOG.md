@@ -7,6 +7,12 @@
   * Remove error message when lyrics file is not found
   * Update integration tests to reflect removal of error message when
     lyrics file is not found
+  * Refactor test files into separate modules for better organization:
+    * `tests/common.rs` - Common utility functions and test setup code
+    * `tests/put_playlist_tests.rs` - Tests for the `plm-put-playlist`
+      command
+    * `tests/delete_playlist_tests.rs` - Tests for the
+      `plm-delete-playlist` command
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 
