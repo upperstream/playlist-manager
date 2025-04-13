@@ -398,4 +398,166 @@ mod tests {
         // Command should fail without --keep-going when a playlist is missing
         assert.failure();
     }
+
+    #[test]
+    fn test_error_files_without_keep_going() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+        let error_file = temp_dir.path().join("errors.log");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        let playlist_path = music_dir.join("playlist.m3u8");
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--error-files")
+            .arg(error_file.to_str().unwrap())
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .assert();
+
+        // Command should fail with exit code 255 when --error-files is used without --keep-going
+        assert
+            .failure()
+            .code(255)
+            .stderr(predicate::str::contains("--error-files can only be used with --keep-going"));
+    }
+
+    #[test]
+    fn test_error_files_with_keep_going() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+        let error_file = temp_dir.path().join("errors.log");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create a playlist with a missing file
+        let playlist_content = "artist1/album1/title1.flac\nartist1/album1/missing.flac\nartist2/album1/title1.flac";
+        let playlist_path = music_dir.join("playlist_with_missing.m3u8");
+        create_test_file(&playlist_path, playlist_content);
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--keep-going")
+            .arg("--error-files")
+            .arg(error_file.to_str().unwrap())
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .assert();
+
+        // Command should succeed with --keep-going and --error-files
+        assert.success();
+
+        // Verify error log file exists and contains the missing file with correct prefix
+        assert!(error_file.exists());
+        let error_content = fs::read_to_string(&error_file).unwrap();
+        assert!(error_content.contains("M "));
+        assert!(error_content.contains("artist1/album1/missing.flac"));
+    }
+
+    #[test]
+    fn test_error_files_with_multiple_errors() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+        let error_file = temp_dir.path().join("errors.log");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create a playlist with multiple missing files
+        let playlist1_content = "artist1/album1/title1.flac\nartist1/album1/missing1.flac\nartist2/album1/title1.flac";
+        let playlist1_path = music_dir.join("playlist_with_missing1.m3u8");
+        create_test_file(&playlist1_path, playlist1_content);
+
+        // Create a second playlist with a missing file
+        let playlist2_content = "artist1/album1/title2.flac\nartist2/album2/missing2.flac";
+        let playlist2_path = music_dir.join("playlist_with_missing2.m3u8");
+        create_test_file(&playlist2_path, playlist2_content);
+
+        // Create a third playlist that doesn't exist
+        let missing_playlist_path = music_dir.join("missing_playlist.m3u8");
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--keep-going")
+            .arg("--error-files")
+            .arg(error_file.to_str().unwrap())
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist1_path.to_str().unwrap())
+            .arg(playlist2_path.to_str().unwrap())
+            .arg(missing_playlist_path.to_str().unwrap())
+            .assert();
+
+        // Command should succeed with --keep-going and --error-files
+        assert.success();
+
+        // Verify error log file exists and contains all the missing files and playlists with correct prefixes
+        assert!(error_file.exists());
+        let error_content = fs::read_to_string(&error_file).unwrap();
+        
+        // Check for playlist prefix
+        assert!(error_content.contains("P "));
+        assert!(error_content.contains(format!("P {}", missing_playlist_path.to_str().unwrap())));
+        
+        // Check for media file prefixes
+        assert!(error_content.contains("M "));
+        assert!(error_content.contains("artist1/album1/missing1.flac"));
+        assert!(error_content.contains("artist2/album2/missing2.flac"));
+    }
+    
+    #[test]
+    fn test_error_files_format() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+        let error_file = temp_dir.path().join("errors.log");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create a playlist that will fail (invalid path)
+        let missing_playlist_path = music_dir.join("missing_playlist.m3u8");
+        
+        // Create a playlist with a missing file
+        let playlist_content = "artist1/album1/title1.flac\nartist1/album1/missing.flac\nartist2/album1/title1.flac";
+        let playlist_path = music_dir.join("playlist_with_missing.m3u8");
+        create_test_file(&playlist_path, playlist_content);
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--keep-going")
+            .arg("--error-files")
+            .arg(error_file.to_str().unwrap())
+            .arg(dest_dir.to_str().unwrap())
+            .arg(missing_playlist_path.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .assert();
+
+        // Command should succeed with --keep-going and --error-files
+        assert.success();
+
+        // Verify error log file exists
+        assert!(error_file.exists());
+        let error_content = fs::read_to_string(&error_file).unwrap();
+        
+        // The first line should be the failed playlist with P prefix
+        let lines: Vec<&str> = error_content.lines().collect();
+        assert!(!lines.is_empty());
+        assert!(lines[0].starts_with("P "));
+        assert!(lines[0].contains(missing_playlist_path.to_str().unwrap()));
+        
+        // The subsequent lines should be the failed media files with M prefix
+        let media_lines: Vec<&str> = lines.iter().filter(|line| line.starts_with("M ")).cloned().collect();
+        assert!(!media_lines.is_empty());
+        
+        // Verify that media files from failed playlists are not included
+        // (i.e., there should be no entries for files from missing_playlist.m3u8)
+        for line in &lines {
+            if line.starts_with("M ") {
+                assert!(!line.contains(missing_playlist_path.to_str().unwrap()));
+            }
+        }
+    }
 }

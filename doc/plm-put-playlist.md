@@ -26,6 +26,8 @@ plm-put-playlist [OPTIONS] DEST PLAYLIST [...]
 - `-l, --lyrics`: Copy lyrics files (with `.lrc` extension) along with
   media files
 - `-k, --keep-going`: Continue operation despite errors
+- `-e, --error-files FILE`: Write list of failed files to specified file
+  (must be used with `--keep-going`)
 - `-H, --help`: Display help information and exit
 - `-V, --version`: Display version information and exit
 
@@ -45,7 +47,8 @@ flowchart TD
     E --> F{Error?}
     F -->|Yes| G{Keep Going?}
     G -->|No| H[Exit with Error]
-    G -->|Yes| K
+    G -->|Yes| I1[Track Failed Playlist]
+    I1 --> K
     F -->|No| I[Extract Media Files]
     I --> J[Update Media Files Map]
     J --> L[Filter Already Copied Files]
@@ -53,12 +56,18 @@ flowchart TD
     M --> N{Error?}
     N -->|Yes| O{Keep Going?}
     O -->|No| H
-    O -->|Yes| K
+    O -->|Yes| O1[Track Failed Media Files]
+    O1 --> K
     N -->|No| P[Update Copied Files Set]
     P --> K{More Playlists?}
     K -->|Yes| D
     K -->|No| Q[Display Summary]
-    Q --> R[End]
+    Q --> Q1{Error Files Option?}
+    Q1 -->|Yes| Q2[Write Error Log]
+    Q2 --> Q3{Write Success?}
+    Q3 -->|No| Q4[Exit with Error Code 2]
+    Q3 -->|Yes| R[End]
+    Q1 -->|No| R
 ```
 
 ## Implementation Details
@@ -124,6 +133,16 @@ playlist copied" and "(c/d) media files copied", where:
 - `d` is the total number of media files to be copied (excluding lyrics
   files)
 
+When the `-e, --error-files` option is specified along with `-k, --keep-going`,
+the command will write the list of playlist files and media files that failed
+to copy to the specified file.  Each line in the error file is prefixed with
+either "P " for failed playlists or "M " for failed media files, and the entries
+are listed in the order they failed.  If the file cannot be created, the command
+will print an error message to stderr and exit with status code 2.
+
+If the `-e, --error-files` option is used without the `-k, --keep-going` option,
+the command will print an error message to stderr and exit with status code 255.
+
 ## Examples
 
 ### Basic Usage
@@ -166,11 +185,20 @@ Copy playlists and media files, continuing despite errors:
 plm put-playlist --keep-going /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
 ```
 
+### Log Failed Files
+
+Copy playlists and media files, continuing despite errors and logging failed files:
+
+```bash
+plm put-playlist --keep-going --error-files errors.log /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
+```
+
 ## Exit Status
 
 - `0`: Command successfully exits
+- `1`: Command fails during execution (e.g., file copy errors) when `--keep-going` is not specified
+- `2`: Command fails to create the error log file specified with `--error-files`
 - `255`: Command fails with invalid command line arguments
-- `1`: Command fails with other errors
 
 ## Code Structure
 

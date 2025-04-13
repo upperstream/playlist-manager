@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 
@@ -25,6 +25,10 @@ struct Cli {
     #[arg(short = 'k', long = "keep-going", action = ArgAction::SetTrue)]
     keep_going: bool,
 
+    /// Write list of failed files to specified file (only with --keep-going)
+    #[arg(short = 'e', long = "error-files", value_name = "FILE")]
+    error_files: Option<String>,
+
     /// Destination to put playlists and media files into
     #[arg(required = true)]
     dest: String,
@@ -41,6 +45,52 @@ enum AppError {
 
     #[error("Failed to get absolute path: {0}")]
     AbsPath(String),
+}
+
+/// Enum to represent different types of failures
+enum FailureType {
+    Playlist(String),              // Failed playlist path
+    MediaFile(String, String),     // (src_basedir, file) for failed media file
+}
+
+/// Struct to track failed files
+struct ErrorTracker {
+    failures: Vec<FailureType>,    // Failures in operation order
+}
+
+impl ErrorTracker {
+    fn new() -> Self {
+        Self {
+            failures: Vec::new(),
+        }
+    }
+    
+    fn add_failed_playlist(&mut self, playlist: String) {
+        self.failures.push(FailureType::Playlist(playlist));
+    }
+    
+    fn add_failed_media_file(&mut self, src_basedir: String, file: String) {
+        self.failures.push(FailureType::MediaFile(src_basedir, file));
+    }
+    
+    fn write_to_file(&self, path: &str) -> Result<(), io::Error> {
+        let mut file = File::create(path)?;
+        
+        // Write failures in operation order with appropriate prefixes
+        for failure in &self.failures {
+            match failure {
+                FailureType::Playlist(playlist) => {
+                    writeln!(file, "P {}", playlist)?;
+                },
+                FailureType::MediaFile(src_basedir, file_path) => {
+                    let full_path = Path::new(src_basedir).join(file_path);
+                    writeln!(file, "M {}", full_path.display())?;
+                }
+            }
+        }
+        
+        Ok(())
+    }
 }
 
 /// Get the absolute path of a directory
@@ -83,6 +133,7 @@ fn copy_media_files(
     verbose: bool,
     copy_lyrics: bool,
     keep_going: bool,
+    error_tracker: Option<&mut ErrorTracker>,
 ) -> Result<(usize, Vec<String>)> {
     let mut n_files = 0;
     let mut successful_files = Vec::new();
@@ -98,14 +149,17 @@ fn copy_media_files(
             match fs::create_dir_all(&dest_dir) {
                 Ok(_) => {},
                 Err(e) => {
-                    let err = anyhow::Error::new(e)
-                        .context(format!("Failed to create directory: {}", dest_dir.display()));
-                    if keep_going {
-                        eprintln!("Error: {}", err);
-                        continue;
-                    } else {
-                        return Err(err);
+                let err = anyhow::Error::new(e)
+                    .context(format!("Failed to create directory: {}", dest_dir.display()));
+                if keep_going {
+                    eprintln!("Error: {}", err);
+                    if let Some(tracker) = error_tracker {
+                        tracker.add_failed_media_file(src_basedir.to_string(), file.clone());
                     }
+                    continue;
+                } else {
+                    return Err(err);
+                }
                 }
             }
         }
@@ -133,6 +187,9 @@ fn copy_media_files(
                     ));
                 if keep_going {
                     eprintln!("Error: {}", err);
+                    if let Some(tracker) = error_tracker {
+                        tracker.add_failed_media_file(src_basedir.to_string(), file.clone());
+                    }
                     continue;
                 } else {
                     return Err(err);
@@ -168,6 +225,7 @@ fn copy_media_files(
                                 ));
                             if keep_going {
                                 eprintln!("Error: {}", err);
+                                // We don't track lyrics files in the error tracker
                                 continue;
                             } else {
                                 return Err(err);
@@ -290,7 +348,8 @@ fn process_playlist(
     playlist: &str,
     dest_basedir: &str,
     verbose: bool,
-    media_files_map: &mut Vec<(String, HashSet<String>)>
+    media_files_map: &mut Vec<(String, HashSet<String>)>,
+    error_tracker: Option<&mut ErrorTracker>
 ) -> Result<(String, Vec<String>)> {
     print_message(
         verbose,
@@ -339,6 +398,15 @@ fn filter_already_copied_files(
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // Validate that --error-files is only used with --keep-going
+    if cli.error_files.is_some() && !cli.keep_going {
+        eprintln!("Error: --error-files can only be used with --keep-going");
+        process::exit(255);
+    }
+
+    // Initialize error tracker if --error-files is specified
+    let mut error_tracker = cli.error_files.as_ref().map(|_| ErrorTracker::new());
+
     let dest_dir = match abs_dir(&cli.dest) {
         Ok(dir) => dir,
         Err(e) => {
@@ -362,7 +430,7 @@ fn main() -> Result<()> {
             &[playlist, &dest_dir],
         );
 
-        match process_playlist(playlist, &dest_dir, cli.verbose, &mut media_files_map) {
+        match process_playlist(playlist, &dest_dir, cli.verbose, &mut media_files_map, error_tracker.as_mut()) {
             Ok((src_basedir, files)) => {
                 // Filter out already copied files
                 let files_to_copy = filter_already_copied_files(&src_basedir, &files, &copied_files);
@@ -377,7 +445,7 @@ fn main() -> Result<()> {
                 );
 
                 // Copy files for this playlist
-                match copy_media_files(&src_basedir, &dest_dir, files_to_copy.into_iter(), cli.verbose, cli.lyrics, cli.keep_going) {
+                match copy_media_files(&src_basedir, &dest_dir, files_to_copy.into_iter(), cli.verbose, cli.lyrics, cli.keep_going, error_tracker.as_mut()) {
                     Ok((_copied, successful_files)) => {
                         // Count successful media files (excluding lyrics)
                         // The copy_media_files function returns the total number of files copied,
@@ -421,6 +489,9 @@ fn main() -> Result<()> {
             }
             Err(e) => {
                 eprintln!("Error processing playlist {}: {}", playlist, e);
+                if let Some(tracker) = error_tracker.as_mut() {
+                    tracker.add_failed_playlist(playlist.to_string());
+                }
                 if !cli.keep_going {
                     process::exit(1);
                 }
@@ -430,6 +501,16 @@ fn main() -> Result<()> {
 
     println!("({}/{}) playlist copied", successful_playlists, total_playlists);
     println!("({}/{}) media files copied", successful_media_files, total_media_files);
+
+    // Write error log if requested
+    if let Some(error_file) = cli.error_files {
+        if let Some(tracker) = error_tracker {
+            if let Err(e) = tracker.write_to_file(&error_file) {
+                eprintln!("Error: Failed to write error log file: {}", e);
+                process::exit(2);
+            }
+        }
+    }
 
     Ok(())
 }
