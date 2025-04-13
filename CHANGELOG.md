@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased][]
+## [0.2.0][] - 2025-04-14
 
 * Added
   * Add documentation for Playlist Manager commands and directory
@@ -93,8 +93,8 @@
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
-[Unreleased]:
-  https://github.com/upperstream/playlist-manager/compare/0.1.0...HEAD
+[0.2.0]:
+  https://github.com/upperstream/playlist-manager/compare/0.1.0...0.2.0
 [0.1.0]:
   https://github.com/upperstream/playlist-manager/compare/0.0.4...0.1.0
 [0.0.4]:

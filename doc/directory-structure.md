@@ -53,8 +53,10 @@ The `doc/` directory contains documentation files in Markdown format:
 - `overview.md` - General overview of the Playlist Manager
 - `plm.md` - Documentation for the main command
 - `plm-put-playlist.md` - Documentation for the put-playlist command
-- `plm-delete-playlist.md` - Documentation for the delete-playlist command
-- `directory-structure.md` - This document, describing the project structure
+- `plm-delete-playlist.md` - Documentation for the delete-playlist
+  command
+- `directory-structure.md` - This document, describing the project
+  structure
 
 ### libexec/
 
@@ -69,14 +71,17 @@ page format:
 
 - `man1/plm.1` - Manual page for the main command
 - `man1/plm-put-playlist.1` - Manual page for the put-playlist command
-- `man1/plm-delete-playlist.1` - Manual page for the delete-playlist command
+- `man1/plm-delete-playlist.1` - Manual page for the delete-playlist
+  command
 
 ### src/
 
 The `src/` directory contains the source code for the project:
 
-- `bin/plm-put-playlist.rs` - Implementation of the put-playlist command
-- `bin/plm-delete-playlist.rs` - Implementation of the delete-playlist command
+- `bin/plm-put-playlist.rs` - Implementation of the put-playlist
+  command
+- `bin/plm-delete-playlist.rs` - Implementation of the delete-playlist
+  command
 
 The Playlist Manager is implemented in Rust, with each subcommand as a
 separate executable.
@@ -98,21 +103,24 @@ The `work/` directory is used for temporary work files.  It contains a
 
 ### Build and Configuration Files
 
-- `Cargo.toml` - Rust package configuration file that defines dependencies
-  and build settings
+- `Cargo.toml` - Rust package configuration file that defines
+  dependencies and build settings
 - `Cargo.lock` - Lock file that ensures reproducible builds by fixing
   dependency versions
 - `Makefile` - Contains targets for building, testing, installing, and
   uninstalling the project
-- `.clinerules` - Defines coding and documentation standards for the project
-- `.editorconfig` - Defines editor settings for consistent code formatting
+- `.clinerules` - Defines coding and documentation standards for the
+  project
+- `.editorconfig` - Defines editor settings for consistent code
+  formatting
 - `.gitignore` - Specifies files that should be ignored by Git
 - `.gitattributes` - Defines attributes for paths in the Git repository
 - `embed_version.awk` - AWK script used to embed version information
 
 ### Documentation Files
 
-- `README.md` - Project overview, installation instructions, and basic usage
+- `README.md` - Project overview, installation instructions, and basic
+  usage
 - `CHANGELOG.md` - History of changes made to the project
 - `LICENSE.txt` - Project license information (ISC License)
 

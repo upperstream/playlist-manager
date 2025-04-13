@@ -3,8 +3,8 @@
 ## Overview
 
 The `plm-put-playlist` command copies playlist files and their
-associated media files from a PC to a device.  It handles the transfer of
-both the playlist files and the media files referenced within them,
+associated media files from a PC to a device.  It handles the transfer
+of both the playlist files and the media files referenced within them,
 maintaining the directory structure and optimising to avoid copying
 duplicate files.
 
@@ -38,8 +38,8 @@ plm-put-playlist -r FILE [-v] [-l] [-e FILE] [-k] DEST
 - `-l, --lyrics`: Copy lyrics files (with `.lrc` extension) along with
   media files
 - `-k, --keep-going`: Continue operation despite errors
-- `-e, --error-files FILE`: Write list of failed files to specified file
-  (must be used with `--keep-going` unless used with `--retry`)
+- `-e, --error-files FILE`: Write list of failed files to specified
+  file (must be used with `--keep-going` unless used with `--retry`)
 - `-r, --retry FILE`: Retry failed operations from error file
 - `-H, --help`: Display help information and exit
 - `-V, --version`: Display version information and exit
@@ -101,16 +101,16 @@ The command processes each playlist file to:
 
 ### Path Normalisation
 
-During the copying process, backslash characters (`\`) in playlist files
-are replaced with forward slash characters (`/`) to ensure compatibility
-across different systems.
+During the copying process, backslash characters (`\`) in playlist
+files are replaced with forward slash characters (`/`) to ensure
+compatibility across different systems.
 
 ### Media Files Map
 
 The command maintains a map of media files to avoid copying the same
 file multiple times when it's referenced in multiple playlists.  This
-optimisation is particularly useful for large collections where the same
-media files might be referenced in multiple playlists.
+optimisation is particularly useful for large collections where the
+same media files might be referenced in multiple playlists.
 
 ```mermaid
 graph TD
@@ -125,9 +125,9 @@ graph TD
 ### Lyrics Files
 
 When the `-l, --lyrics` option is specified, the command also copies
-lyrics files (with `.lrc` extension) that correspond to the media files.  
-It looks for lyrics files with the same base name as the media files but
-with the `.lrc` extension.
+lyrics files (with `.lrc` extension) that correspond to the media files.
+It looks for lyrics files with the same base name as the media files
+but with the `.lrc` extension.
 
 ### Error Handling
 
@@ -151,22 +151,24 @@ playlist copied" and "(c/d) media files copied", where:
 - `d` is the total number of media files to be copied (excluding lyrics
   files)
 
-When the `-e, --error-files` option is specified along with `-k, --keep-going`,
-the command will write the list of playlist files and media files that failed
-to copy to the specified file.  Each line in the error file is prefixed with
-either "P " for failed playlists or "M " for failed media files, and the entries
-are listed in the order they failed.  If the file cannot be created, the command
-will print an error message to stderr and exit with status code 2.
+When the `-e, --error-files` option is specified along with
+`-k, --keep-going`, the command will write the list of playlist files
+and media files that failed to copy to the specified file.  Each line
+in the error file is prefixed with either "P " for failed playlists or
+"M " for failed media files, and the entries are listed in the order
+they failed.  If the file cannot be created, the command will print an
+error message to stderr and exit with status code 2.
 
-If the `-e, --error-files` option is used without the `-k, --keep-going` option
-and not with the `-r, --retry` option, the command will print an error message
-to stderr and exit with status code 255.
+If the `-e, --error-files` option is used without the `-k, --keep-going`
+option and not with the `-r, --retry` option, the command will print an
+error message to stderr and exit with status code 255.
 
 ### Retry Functionality
 
-When the `-r, --retry` option is specified, the command will read the error file
-produced by a previous run with the `-e, --error-files` option and retry the
-failed operations. The command syntax in this case is:
+When the `-r, --retry` option is specified, the command will read the
+error file produced by a previous run with the `-e, --error-files`
+option and retry the failed operations. The command syntax in this case
+is:
 
 ```
 plm-put-playlist -r FILE [-v] [-l] [-e FILE] [-k] DEST
@@ -175,22 +177,24 @@ plm-put-playlist -r FILE [-v] [-l] [-e FILE] [-k] DEST
 The operation is done as follows:
 
 1. Read one line from the error file.
-2. If the line is prefixed by "M", it is a media file to copy. Copy the media
-   file and read the next line. This is repeated until the file reaches the end
-   or the next line is prefixed by "P".
-3. If the line is prefixed by "P", it is a playlist to copy. Copy the playlist
-   file. Then read the next line (say, line B) and if the next line is prefixed
-   by "M", copy the media file and repeat until the file reaches the end or the
-   line prefixed by "P". If the line B is prefixed by "P" (that is, two
-   consecutive lines are prefixed by "P"), copy media files in the first
-   playlist.
-4. When all files are copied, print the summary (the number of playlist files
-   and the number of media files as the standard operation) to stdout.
+2. If the line is prefixed by "M", it is a media file to copy.  Copy
+   the media file and read the next line.  This is repeated until the
+   file reaches the end or the next line is prefixed by "P".
+3. If the line is prefixed by "P", it is a playlist to copy.  Copy the
+   playlist file.  Then read the next line (say, line B) and if the
+   next line is prefixed by "M", copy the media file and repeat until
+   the file reaches the end or the line prefixed by "P".  If the line B
+   is prefixed by "P" (that is, two consecutive lines are prefixed by "P"),
+   copy media files in the first playlist.
+4. When all files are copied, print the summary (the number of playlist
+   files and the number of media files as the standard operation) to
+   stdout.
 
-The `-e, --error-files` option can be given with the `-r, --retry` option at the
-same time. A new error file is created for the operation of the `-r, --retry`
-option. If the same file is specified by `-r` and `-e`, the command will print
-an error message to stderr and exit with status code 255.
+The `-e, --error-files` option can be given with the `-r, --retry`
+option at the same time.  A new error file is created for the operation
+of the `-r, --retry` option.  If the same file is specified by `-r` and
+`-e`, the command will print an error message to stderr and exit with
+status code 255.
 
 ## Examples
 
@@ -269,8 +273,10 @@ plm put-playlist --retry errors.log --keep-going --error-files new-errors.log /m
 ## Exit Status
 
 - `0`: Command successfully exits
-- `1`: Command fails during execution (e.g., file copy errors) when `--keep-going` is not specified
-- `2`: Command fails to create the error log file specified with `--error-files`
+- `1`: Command fails during execution (e.g., file copy errors) when
+  `--keep-going` is not specified
+- `2`: Command fails to create the error log file specified with
+  `--error-files`
 - `255`: Command fails with invalid command line arguments
 
 ## Code Structure
@@ -286,11 +292,11 @@ The implementation is organised into several key functions:
 5. `copy_media_files()`: Copies media files from source to destination
 6. `filter_already_copied_files()`: Filters out files that have already
    been copied
-7. `parse_error_file()`: Parses an error file and extracts failed playlists
-   and media files
-8. `retry_operations()`: Retries failed operations from an error file
-9. `abs_dir()`: Gets the absolute path of a directory
-10. `print_message()`: Prints a message if verbose mode is enabled
+7. `parse_error_file()`: Parses an error file and extracts failed
+   playlists and media files
+9. `retry_operations()`: Retries failed operations from an error file
+10. `abs_dir()`: Gets the absolute path of a directory
+11. `print_message()`: Prints a message if verbose mode is enabled
 
 ## Optimisation
 

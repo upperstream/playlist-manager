@@ -76,25 +76,25 @@ sequenceDiagram
 
 ### Copy a playlist and its media files
 
-```bash
+```
 plm put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 ```
 
 ### Copy a playlist with verbose output
 
-```bash
+```
 plm -v put-playlist /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 ```
 
 ### Delete a playlist and its media files
 
-```bash
+```
 plm delete-playlist --media /mnt/sdcard/MUSIC/playlist.m3u8
 ```
 
 ### Get help for a specific command
 
-```bash
+```
 plm help put-playlist
 ```
 
@@ -108,8 +108,8 @@ The `plm` command is implemented as a shell script that:
    executable
 4. Returns the exit status from the subcommand
 
-The actual functionality is implemented in separate executables for each
-subcommand, which are located in the `libexec/playlist-manager`
+The actual functionality is implemented in separate executables for
+each subcommand, which are located in the `libexec/playlist-manager`
 directory.
 
 ## See Also
@@ -117,5 +117,5 @@ directory.
 - [Overview](overview.md) - Playlist Manager overview
 - [plm-put-playlist](plm-put-playlist.md) - Put playlist command
   documentation
-- [plm-delete-playlist](plm-delete-playlist.md) - Delete playlist command
-  documentation
+- [plm-delete-playlist](plm-delete-playlist.md) - Delete playlist
+  command documentation

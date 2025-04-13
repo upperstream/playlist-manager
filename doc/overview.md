@@ -15,8 +15,8 @@ between a PC and audio playback devices.
 
 The Playlist Manager follows a command-line interface (CLI) design with
 a main command (`plm`) that provides access to subcommands for specific
-operations.  Each subcommand is implemented as a separate executable for
-modularity and maintainability.
+operations.  Each subcommand is implemented as a separate executable
+for modularity and maintainability.
 
 ```mermaid
 graph TD
@@ -110,7 +110,7 @@ The Playlist Manager has several planned enhancements:
 - [plm](plm.md) - Main command documentation
 - [plm-put-playlist](plm-put-playlist.md) - Put playlist command
   documentation
-- [plm-delete-playlist](plm-delete-playlist.md) - Delete playlist command
-  documentation
-- [directory-structure](directory-structure.md) - Project directory structure
-  documentation
+- [plm-delete-playlist](plm-delete-playlist.md) - Delete playlist
+  command documentation
+- [directory-structure](directory-structure.md) - Project directory
+  structure documentation

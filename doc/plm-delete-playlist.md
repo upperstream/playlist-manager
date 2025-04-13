@@ -71,8 +71,8 @@ When the `-m, --media` option is specified, the command also:
 ### Directory Cleanup
 
 After deleting media files, the command recursively deletes empty
-directories up to the directory where the playlist resides.  This helps
-keep the device storage clean and organised.
+directories up to the directory where the playlist resides.  This
+helps keep the device storage clean and organised.
 
 ```mermaid
 graph TD
@@ -98,7 +98,7 @@ The command handles various error conditions:
 
 Delete a single playlist file:
 
-```bash
+```
 plm delete-playlist /mnt/sdcard/MUSIC/playlist.m3u8
 ```
 
@@ -106,7 +106,7 @@ plm delete-playlist /mnt/sdcard/MUSIC/playlist.m3u8
 
 Delete multiple playlist files:
 
-```bash
+```
 plm delete-playlist /mnt/sdcard/MUSIC/playlist1.m3u8 /mnt/sdcard/MUSIC/playlist2.m3u8
 ```
 
@@ -114,7 +114,7 @@ plm delete-playlist /mnt/sdcard/MUSIC/playlist1.m3u8 /mnt/sdcard/MUSIC/playlist2
 
 Delete a playlist and its associated media files:
 
-```bash
+```
 plm delete-playlist --media /mnt/sdcard/MUSIC/playlist.m3u8
 ```
 
@@ -122,7 +122,7 @@ plm delete-playlist --media /mnt/sdcard/MUSIC/playlist.m3u8
 
 Delete with verbose output:
 
-```bash
+```
 plm delete-playlist --verbose --media /mnt/sdcard/MUSIC/playlist.m3u8
 ```
 
