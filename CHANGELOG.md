@@ -5,6 +5,8 @@
 * Changed
   * Improve build process
   * Remove error message when lyrics file is not found
+  * Update integration tests to reflect removal of error message when
+    lyrics file is not found
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 

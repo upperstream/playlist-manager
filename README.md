@@ -6,6 +6,7 @@ associated media files between PC and audio playback device.
 ## Feature
 
 * Copy playlist files and associated media files from a PC to a device.
+* Copy lyrics files (with `.lrc` extension) along with media files.
 * Delete playlist files and associated media files from a device.
 
 ## Prerequisites
@@ -46,7 +47,6 @@ Default value is `/usr/local`.
 There are couples of features to add:
 
 * Copy albums from a PC to a device
-* Copy lyrics file along with media file
 * Delete albums on a device
 * Create a playlist file with associated media files on a PC
 * Direct access to MTP device

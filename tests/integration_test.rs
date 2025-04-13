@@ -177,6 +177,9 @@ fn test_put_playlist_verbose() {
         .stdout(predicate::str::contains("Number of copied playlists: 1"))
         .stdout(predicate::str::contains("Number of copied media files: 4"))
         .stderr(predicate::str::contains("Copy playlist"));
+    
+    // Note: No error messages should be present for missing lyrics files
+    // even in verbose mode
 }
 
 #[test]
@@ -260,6 +263,7 @@ fn test_put_playlist_with_lyrics() {
         .arg(playlist_path.to_str().unwrap())
         .assert();
 
+    // Note: No error messages are expected when lyrics files are not found
     assert
         .success()
         .stdout(predicate::str::contains("Number of copied playlists: 1"));
@@ -285,6 +289,7 @@ fn test_put_playlist_with_lyrics() {
     ));
 
     // Verify lyrics files don't exist for files that didn't have them
+    // (and no error messages are generated for these missing files)
     assert!(!dest_dir.join("artist1/album1/title2.lrc").exists());
     assert!(!dest_dir.join("artist2/album1/title1.lrc").exists());
 }
@@ -467,4 +472,40 @@ fn test_delete_playlist_nonexistent() {
         .assert();
 
     assert.failure();
+}
+
+#[test]
+fn test_put_playlist_with_lyrics_none_found() {
+    let temp_dir = setup_test_directory();
+    let music_dir = temp_dir.path().join("MUSIC");
+    let dest_dir = temp_dir.path().join("DEST");
+
+    fs::create_dir_all(&dest_dir).unwrap();
+
+    // Create a playlist with files that don't have lyrics
+    let playlist_content = "artist1/album1/title2.flac\nartist2/album1/title1.flac";
+    let playlist_path = music_dir.join("playlist_no_lyrics.m3u8");
+    create_test_file(&playlist_path, playlist_content);
+
+    let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+    let assert = cmd
+        .arg("--lyrics")
+        .arg("-v") // Use verbose mode to ensure we would see any error messages
+        .arg(dest_dir.to_str().unwrap())
+        .arg(playlist_path.to_str().unwrap())
+        .assert();
+
+    // Command should succeed without error messages about missing lyrics files
+    assert
+        .success()
+        .stdout(predicate::str::contains("Number of copied playlists: 1"))
+        .stdout(predicate::str::contains("Number of copied media files: 2"));
+
+    // Verify media files were copied
+    assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+    assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+
+    // Verify no lyrics files were copied (as they don't exist)
+    assert!(!dest_dir.join("artist1/album1/title2.lrc").exists());
+    assert!(!dest_dir.join("artist2/album1/title1.lrc").exists());
 }
