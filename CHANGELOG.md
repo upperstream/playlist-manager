@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.2.0][] - 2025-04-14
+## [Unreleased][]
+
+* Changed:
+  * Change version tag formatting to use 'v' prefix
+
+## [v0.2.0][] - 2025-04-14
 
 * Added
   * Add documentation for Playlist Manager commands and directory
@@ -36,7 +41,7 @@
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 
-## [0.1.0][] - 2025-03-20
+## [v0.1.0][] - 2025-03-20
 
 * Added
   * Add `-l/--lyrics` option to `plm-put-playlist` command to copy
@@ -69,23 +74,23 @@
     verbosity to `-v1` instead of `-v` as expected by the Rust
     implementation
 
-## [0.0.4][] - 2024-11-02
+## [v0.0.4][] - 2024-11-02
 
 * Added
   * Add uninstallation to the [Makefile](Makefile)
 
-## [0.0.3][] - 2024-10-31
+## [v0.0.3][] - 2024-10-31
 
 * Changed
   * Wording in document files
 
-## [0.0.2][] - 2024-10-31
+## [v0.0.2][] - 2024-10-31
 
 * Changed
   * Accept playlist file of which line ending is DOS style (ending with
     0x0d 0x0a)
 
-## [0.0.1][] - 2024-10-29
+## [v0.0.1][] - 2024-10-29
 
 * Added
   * New release
@@ -93,15 +98,17 @@
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
-[0.2.0]:
-  https://github.com/upperstream/playlist-manager/compare/0.1.0...0.2.0
-[0.1.0]:
-  https://github.com/upperstream/playlist-manager/compare/0.0.4...0.1.0
-[0.0.4]:
-  https://github.com/upperstream/playlist-manager/compare/0.0.3...0.0.4
-[0.0.3]:
-  https://github.com/upperstream/playlist-manager/compare/0.0.2...0.0.3
-[0.0.2]:
-  https://github.com/upperstream/playlist-manager/compare/0.0.1...0.0.2
-[0.0.1]:
-  https://github.com/upperstream/playlist-manager/releases/tag/0.0.1
+[Unreleased]:
+  https://github.com/upperstream/playlist-manager/compare/v0.2.0...HEAD
+[v0.2.0]:
+  https://github.com/upperstream/playlist-manager/compare/v0.1.0...v0.2.0
+[v0.1.0]:
+  https://github.com/upperstream/playlist-manager/compare/v0.0.4...v0.1.0
+[v0.0.4]:
+  https://github.com/upperstream/playlist-manager/compare/v0.0.3...v0.0.4
+[v0.0.3]:
+  https://github.com/upperstream/playlist-manager/compare/v0.0.2...v0.0.3
+[v0.0.2]:
+  https://github.com/upperstream/playlist-manager/compare/v0.0.1...v0.0.2
+[v0.0.1]:
+  https://github.com/upperstream/playlist-manager/releases/tag/v0.0.1
