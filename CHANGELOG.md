@@ -2,20 +2,23 @@
 
 ## [Unreleased][]
 
+* Added
+  * Add documentation for Playlist Manager commands and directory
+    structure
 * Changed
   * Improve build process
   * Remove error message when lyrics file is not found
   * Update integration tests to reflect removal of error message when
     lyrics file is not found
-  * Refactor test files into separate modules for better organization:
+  * Refactor test files into separate modules for better organisation:
     * `tests/common.rs` - Common utility functions and test setup code
     * `tests/put_playlist_tests.rs` - Tests for the `plm-put-playlist`
       command
     * `tests/delete_playlist_tests.rs` - Tests for the
       `plm-delete-playlist` command
   * Modify `plm-put-playlist` to process copying media files for each
-    playlist one-by-one while still maintaining the optimization to avoid
-    copying duplicate files
+    playlist one-by-one while still maintaining the optimisation to
+    avoid copying duplicate files
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 

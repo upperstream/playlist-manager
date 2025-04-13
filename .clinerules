@@ -17,7 +17,8 @@ manual pages, and `CHANGELOG.md` to reflect the changes.
 
 ## Text file standards
 
-* Use "double space" style except for manual pages.
+* Use "Typewriter spacing" style (two spaces after full stop) except
+  for manual pages.
 * Prefer British spelling over American spelling except for proper
   nouns.
 * Lines should be wrapped at 72 characters (never exceed 72 characters
