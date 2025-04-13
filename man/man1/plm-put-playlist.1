@@ -7,7 +7,8 @@
 .Sh SYNOPSYS
 .Nm plm put-playlist Oo
 .Fl v | -verbose Oc Oo
-.Fl l | -lyrics Oc
+.Fl l | -lyrics Oc Oo
+.Fl k | -keep-going Oc
 .Ar dest
 .Ar playlist
 .Ar [ ... ]
@@ -42,6 +43,20 @@ or
 .Fl -lyrics
 option is given, lyrics files (with .lrc extension) are copied along with
 media files if they exist in the same directory as the media files.
+.Pp
+When
+.Fl k
+or
+.Fl -keep-going
+option is given, the command will continue operation despite errors.
+It will attempt to process all playlists and copy all media files,
+skipping only those that encounter errors.
+At the end, it will display a summary of the number of successfully copied
+playlists and media files in the form of "(a/b) playlist copied" and
+"(c/d) media files copied", where a is the number of successfully copied
+playlists, b is the total number of playlists to be copied, c is the number
+of successfully copied media files (excluding lyrics files), and d is the
+total number of media files to be copied (excluding lyrics files).
 .Pp
 The second synopsys displays the help screen and quits.
 .Pp
@@ -90,6 +105,9 @@ directory:
 .Pp
 To copy lyrics files along with media files:
 .Dl plm put-playlist --lyrics /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
+.Pp
+To continue operation despite errors:
+.Dl plm put-playlist --keep-going /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
 .Pp
 and results in the following files on the SD card:
 .Pp

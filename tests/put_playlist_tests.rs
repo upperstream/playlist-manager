@@ -39,8 +39,8 @@ mod tests {
 
         assert
             .success()
-            .stdout(predicate::str::contains("Number of copied playlists: 1"))
-            .stdout(predicate::str::contains("Number of copied media files: 4"));
+            .stdout(predicate::str::contains("(1/1) playlist copied"))
+            .stdout(predicate::str::contains("(4/4) media files copied"));
 
         // Verify playlist was copied
         assert!(dest_dir.join("playlist.m3u8").exists());
@@ -91,8 +91,8 @@ mod tests {
 
         assert
             .success()
-            .stdout(predicate::str::contains("Number of copied playlists: 1"))
-            .stdout(predicate::str::contains("Number of copied media files: 4"));
+            .stdout(predicate::str::contains("(1/1) playlist copied"))
+            .stdout(predicate::str::contains("(4/4) media files copied"));
 
         // Verify playlist was copied and backslashes were replaced
         let dest_playlist = dest_dir.join("playlist_backslash.m3u8");
@@ -128,8 +128,8 @@ mod tests {
 
         assert
             .success()
-            .stdout(predicate::str::contains("Number of copied playlists: 1"))
-            .stdout(predicate::str::contains("Number of copied media files: 4"))
+            .stdout(predicate::str::contains("(1/1) playlist copied"))
+            .stdout(predicate::str::contains("(4/4) media files copied"))
             .stderr(predicate::str::contains("Copy playlist"));
         
         // Note: No error messages should be present for missing lyrics files
@@ -160,8 +160,8 @@ mod tests {
 
         assert
             .success()
-            .stdout(predicate::str::contains("Number of copied playlists: 2"))
-            .stdout(predicate::str::contains("Number of copied media files: 4"));
+            .stdout(predicate::str::contains("(2/2) playlist copied"))
+            .stdout(predicate::str::contains("(4/4) media files copied"));
 
         // Verify both playlists were copied
         assert!(dest_dir.join("playlist.m3u8").exists());
@@ -220,7 +220,7 @@ mod tests {
         // Note: No error messages are expected when lyrics files are not found
         assert
             .success()
-            .stdout(predicate::str::contains("Number of copied playlists: 1"));
+            .stdout(predicate::str::contains("(1/1) playlist copied"));
 
         // Verify media files were copied
         assert!(dest_dir.join("artist1/album1/title1.flac").exists());
@@ -272,8 +272,8 @@ mod tests {
         // Command should succeed without error messages about missing lyrics files
         assert
             .success()
-            .stdout(predicate::str::contains("Number of copied playlists: 1"))
-            .stdout(predicate::str::contains("Number of copied media files: 2"));
+            .stdout(predicate::str::contains("(1/1) playlist copied"))
+            .stdout(predicate::str::contains("(2/2) media files copied"));
 
         // Verify media files were copied
         assert!(dest_dir.join("artist1/album1/title2.flac").exists());
@@ -282,5 +282,120 @@ mod tests {
         // Verify no lyrics files were copied (as they don't exist)
         assert!(!dest_dir.join("artist1/album1/title2.lrc").exists());
         assert!(!dest_dir.join("artist2/album1/title1.lrc").exists());
+    }
+
+    #[test]
+    fn test_put_playlist_keep_going_output_format() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        let playlist_path = music_dir.join("playlist.m3u8");
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--keep-going")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .assert();
+
+        // Verify the output format with (a/b) statistics
+        assert
+            .success()
+            .stdout(predicate::str::contains("(1/1) playlist copied"))
+            .stdout(predicate::str::contains("(4/4) media files copied"));
+    }
+
+    #[test]
+    fn test_put_playlist_keep_going_with_missing_playlist() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        let existing_playlist = music_dir.join("playlist.m3u8");
+        let missing_playlist = music_dir.join("missing.m3u8");
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--keep-going")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(existing_playlist.to_str().unwrap())
+            .arg(missing_playlist.to_str().unwrap())
+            .assert();
+
+        // Command should succeed with --keep-going despite the missing playlist
+        assert
+            .success()
+            .stdout(predicate::str::contains("(1/2) playlist copied"))
+            .stdout(predicate::str::contains("media files copied"));
+
+        // Verify the existing playlist was copied
+        assert!(dest_dir.join("playlist.m3u8").exists());
+    }
+
+    #[test]
+    fn test_put_playlist_keep_going_with_missing_media_file() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create a playlist with a missing file
+        let playlist_content = "artist1/album1/title1.flac\nartist1/album1/missing.flac\nartist2/album1/title1.flac";
+        let playlist_path = music_dir.join("playlist_with_missing.m3u8");
+        create_test_file(&playlist_path, playlist_content);
+
+        // Create a second playlist without missing files
+        let playlist2_content = "artist1/album1/title2.flac\nartist2/album2/title1.flac";
+        let playlist2_path = music_dir.join("playlist2.m3u8");
+        create_test_file(&playlist2_path, playlist2_content);
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("--keep-going")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .arg(playlist2_path.to_str().unwrap())
+            .assert();
+
+        // Command should succeed with --keep-going despite the missing media file
+        assert
+            .success()
+            .stdout(predicate::str::contains("(2/2) playlist copied"));
+
+        // Verify both playlists were copied (even though one has missing files)
+        assert!(dest_dir.join("playlist_with_missing.m3u8").exists());
+        assert!(dest_dir.join("playlist2.m3u8").exists());
+
+        // Verify the files from the second playlist were copied
+        assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+        assert!(dest_dir.join("artist2/album2/title1.flac").exists());
+    }
+
+    #[test]
+    fn test_put_playlist_without_keep_going_fails_on_missing_playlist() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        let existing_playlist = music_dir.join("playlist.m3u8");
+        let missing_playlist = music_dir.join("missing.m3u8");
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg(dest_dir.to_str().unwrap())
+            .arg(existing_playlist.to_str().unwrap())
+            .arg(missing_playlist.to_str().unwrap())
+            .assert();
+
+        // Command should fail without --keep-going when a playlist is missing
+        assert.failure();
     }
 }

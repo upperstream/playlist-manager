@@ -21,6 +21,10 @@ struct Cli {
     #[arg(short = 'l', long = "lyrics", action = ArgAction::SetTrue)]
     lyrics: bool,
 
+    /// Continue operation despite errors
+    #[arg(short = 'k', long = "keep-going", action = ArgAction::SetTrue)]
+    keep_going: bool,
+
     /// Destination to put playlists and media files into
     #[arg(required = true)]
     dest: String,
@@ -71,14 +75,17 @@ fn print_message(verbose: bool, fmt: &str, args: &[&str]) {
 }
 
 /// Copy media files from source to destination
+/// Returns a tuple of (number of files copied, list of successfully copied media files)
 fn copy_media_files(
     src_basedir: &str,
     dest_basedir: &str,
     files: impl Iterator<Item = String>,
     verbose: bool,
     copy_lyrics: bool,
-) -> Result<usize> {
+    keep_going: bool,
+) -> Result<(usize, Vec<String>)> {
     let mut n_files = 0;
+    let mut successful_files = Vec::new();
 
     for file in files {
         let file_path = Path::new(&file);
@@ -88,8 +95,19 @@ fn copy_media_files(
         let dest_dir = Path::new(dest_basedir).join(dir_part);
 
         if !dest_dir.exists() {
-            fs::create_dir_all(&dest_dir)
-                .with_context(|| format!("Failed to create directory: {}", dest_dir.display()))?;
+            match fs::create_dir_all(&dest_dir) {
+                Ok(_) => {},
+                Err(e) => {
+                    let err = anyhow::Error::new(e)
+                        .context(format!("Failed to create directory: {}", dest_dir.display()));
+                    if keep_going {
+                        eprintln!("Error: {}", err);
+                        continue;
+                    } else {
+                        return Err(err);
+                    }
+                }
+            }
         }
 
         let src_file = Path::new(src_basedir).join(&file);
@@ -101,15 +119,26 @@ fn copy_media_files(
             &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()],
         );
 
-        fs::copy(&src_file, &dest_file).with_context(|| {
-            format!(
-                "Failed to copy {} to {}",
-                src_file.display(),
-                dest_file.display()
-            )
-        })?;
-
-        n_files += 1;
+        match fs::copy(&src_file, &dest_file) {
+            Ok(_) => {
+                n_files += 1;
+                successful_files.push(file.clone());
+            },
+            Err(e) => {
+                let err = anyhow::Error::new(e)
+                    .context(format!(
+                        "Failed to copy {} to {}",
+                        src_file.display(),
+                        dest_file.display()
+                    ));
+                if keep_going {
+                    eprintln!("Error: {}", err);
+                    continue;
+                } else {
+                    return Err(err);
+                }
+            }
+        }
 
         // If lyrics option is enabled, try to copy the corresponding .lrc file
         if copy_lyrics {
@@ -126,21 +155,31 @@ fn copy_media_files(
                         &[&lyrics_path.to_string_lossy(), &dest_lyrics_file.to_string_lossy()],
                     );
 
-                    fs::copy(&lyrics_path, &dest_lyrics_file).with_context(|| {
-                        format!(
-                            "Failed to copy lyrics {} to {}",
-                            lyrics_path.display(),
-                            dest_lyrics_file.display()
-                        )
-                    })?;
-
-                    n_files += 1;
+                    match fs::copy(&lyrics_path, &dest_lyrics_file) {
+                        Ok(_) => {
+                            n_files += 1;
+                        },
+                        Err(e) => {
+                            let err = anyhow::Error::new(e)
+                                .context(format!(
+                                    "Failed to copy lyrics {} to {}",
+                                    lyrics_path.display(),
+                                    dest_lyrics_file.display()
+                                ));
+                            if keep_going {
+                                eprintln!("Error: {}", err);
+                                continue;
+                            } else {
+                                return Err(err);
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    Ok(n_files)
+    Ok((n_files, successful_files))
 }
 
 /// Extract media files from a playlist
@@ -308,8 +347,10 @@ fn main() -> Result<()> {
         }
     };
 
-    let mut n_playlists = 0;
-    let mut n_files = 0;
+    let total_playlists = cli.playlists.len();
+    let mut successful_playlists = 0;
+    let mut total_media_files = 0;
+    let mut successful_media_files = 0;
     let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
     let mut copied_files: HashSet<(String, String)> = HashSet::new();
 
@@ -323,10 +364,11 @@ fn main() -> Result<()> {
 
         match process_playlist(playlist, &dest_dir, cli.verbose, &mut media_files_map) {
             Ok((src_basedir, files)) => {
-                n_playlists += 1;
-
                 // Filter out already copied files
                 let files_to_copy = filter_already_copied_files(&src_basedir, &files, &copied_files);
+
+                // Count total media files (excluding lyrics)
+                total_media_files += files_to_copy.len();
 
                 print_message(
                     cli.verbose,
@@ -335,30 +377,59 @@ fn main() -> Result<()> {
                 );
 
                 // Copy files for this playlist
-                match copy_media_files(&src_basedir, &dest_dir, files_to_copy.into_iter(), cli.verbose, cli.lyrics) {
-                    Ok(copied) => {
-                        n_files += copied;
+                match copy_media_files(&src_basedir, &dest_dir, files_to_copy.into_iter(), cli.verbose, cli.lyrics, cli.keep_going) {
+                    Ok((_copied, successful_files)) => {
+                        // Count successful media files (excluding lyrics)
+                        // The copy_media_files function returns the total number of files copied,
+                        // including lyrics files if the lyrics option is enabled.
+                        // We need to count only the media files, not the lyrics files.
+                        let media_files_copied = if cli.lyrics {
+                            // If lyrics are enabled, we need to count how many lyrics files were copied
+                            let lyrics_files_copied = successful_files.iter()
+                                .filter(|file| {
+                                    let file_path = Path::new(file);
+                                    if let Some(stem) = file_path.file_stem() {
+                                        let dir_part = file_path.parent().unwrap_or(Path::new(""));
+                                        let lyrics_path = Path::new(&src_basedir).join(dir_part)
+                                            .join(format!("{}.lrc", stem.to_string_lossy()));
+                                        lyrics_path.exists()
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .count();
+                            successful_files.len() - lyrics_files_copied
+                        } else {
+                            successful_files.len()
+                        };
 
-                        // Update copied_files set
-                        for file in files {
+                        successful_media_files += media_files_copied;
+                        successful_playlists += 1;
+
+                        // Update copied_files set with only the successfully copied files
+                        for file in successful_files {
                             copied_files.insert((src_basedir.clone(), file));
                         }
                     }
                     Err(e) => {
                         eprintln!("Error copying media files for playlist {}: {}", playlist, e);
-                        process::exit(1);
+                        if !cli.keep_going {
+                            process::exit(1);
+                        }
                     }
                 }
             }
             Err(e) => {
                 eprintln!("Error processing playlist {}: {}", playlist, e);
-                process::exit(1);
+                if !cli.keep_going {
+                    process::exit(1);
+                }
             }
         }
     }
 
-    println!("Number of copied playlists: {}", n_playlists);
-    println!("Number of copied media files: {}", n_files);
+    println!("({}/{}) playlist copied", successful_playlists, total_playlists);
+    println!("({}/{}) media files copied", successful_media_files, total_media_files);
 
     Ok(())
 }

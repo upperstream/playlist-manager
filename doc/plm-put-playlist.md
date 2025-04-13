@@ -25,6 +25,7 @@ plm-put-playlist [OPTIONS] DEST PLAYLIST [...]
 - `-v, --verbose`: Print verbose messages about the copying process
 - `-l, --lyrics`: Copy lyrics files (with `.lrc` extension) along with
   media files
+- `-k, --keep-going`: Continue operation despite errors
 - `-H, --help`: Display help information and exit
 - `-V, --version`: Display version information and exit
 
@@ -41,15 +42,23 @@ flowchart TD
     B --> C[Validate Destination Directory]
     C --> D[For Each Playlist]
     D --> E[Copy Playlist File]
-    E --> F[Extract Media Files]
-    F --> G[Update Media Files Map]
-    G --> H[Filter Already Copied Files]
-    H --> I[Copy Media Files]
-    I --> J[Update Copied Files Set]
-    J --> K{More Playlists?}
+    E --> F{Error?}
+    F -->|Yes| G{Keep Going?}
+    G -->|No| H[Exit with Error]
+    G -->|Yes| K
+    F -->|No| I[Extract Media Files]
+    I --> J[Update Media Files Map]
+    J --> L[Filter Already Copied Files]
+    L --> M[Copy Media Files]
+    M --> N{Error?}
+    N -->|Yes| O{Keep Going?}
+    O -->|No| H
+    O -->|Yes| K
+    N -->|No| P[Update Copied Files Set]
+    P --> K{More Playlists?}
     K -->|Yes| D
-    K -->|No| L[Display Summary]
-    L --> M[End]
+    K -->|No| Q[Display Summary]
+    Q --> R[End]
 ```
 
 ## Implementation Details
@@ -101,6 +110,20 @@ The command handles various error conditions:
 - Missing playlist files
 - Failed file operations (read, write, copy)
 
+When the `-k, --keep-going` option is specified, the command will
+continue operation despite errors.  It will attempt to process all
+playlists and copy all media files, skipping only those that encounter
+errors.  At the end, it will display a summary of the number of
+successfully copied playlists and media files in the form of "(a/b)
+playlist copied" and "(c/d) media files copied", where:
+
+- `a` is the number of successfully copied playlists
+- `b` is the total number of playlists to be copied
+- `c` is the number of successfully copied media files (excluding lyrics
+  files)
+- `d` is the total number of media files to be copied (excluding lyrics
+  files)
+
 ## Examples
 
 ### Basic Usage
@@ -133,6 +156,14 @@ Copy with verbose output:
 
 ```bash
 plm put-playlist --verbose /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
+```
+
+### Continue Despite Errors
+
+Copy playlists and media files, continuing despite errors:
+
+```bash
+plm put-playlist --keep-going /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
 ```
 
 ## Exit Status

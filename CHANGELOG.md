@@ -5,6 +5,9 @@
 * Added
   * Add documentation for Playlist Manager commands and directory
     structure
+  * Add `-k/--keep-going` option to `plm-put-playlist` command to
+    continue operation despite errors and display results in the form of
+    "(a/b) playlist copied" and "(c/d) media files copied"
 * Changed
   * Improve build process
   * Remove error message when lyrics file is not found
