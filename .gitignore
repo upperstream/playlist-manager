@@ -2,3 +2,5 @@
 playlist-manager.code-workspace
 libexec/playlist-manager/[^.]*
 target/
+work/*
+!work/.keepme

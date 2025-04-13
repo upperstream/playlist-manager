@@ -1,9 +1,17 @@
 .PHONY: help install uninstall test build clean
 
+# Uncomment the following line to enable Windows compatibility
+# EXE=.exe
+
+WORKDIR=work
 PREFIX=/usr/local
 BINDIR=$(PREFIX)/bin
 PLMBINDIR=$(PREFIX)/libexec/playlist-manager
 MANDIR=$(PREFIX)/share/man
+BUILDDIR=libexec/playlist-manager
+EXECUTABLES=$(BUILDDIR)/plm-put-playlist$(EXE) $(BUILDDIR)/plm-delete-playlist$(EXE)
+SRCFILES=src/bin/*.rs
+BUILD_MARKER=$(WORKDIR)/.build_successful
 
 help:
 	@echo "make [-f Makefile] [-n] [PREFIX=...] [<target>]"
@@ -36,19 +44,16 @@ install: build
 	install libexec/playlist-manager/* $(PLMBINDIR)
 	install man/man1/* $(MANDIR)/man1
 
-build:
+build: $(EXECUTABLES)
+
+$(BUILDDIR)/plm-put-playlist$(EXE): src/bin/plm-put-playlist.rs $(BUILD_MARKER)
+$(BUILDDIR)/plm-delete-playlist$(EXE): src/bin/plm-delete-playlist.rs $(BUILD_MARKER)
+
+$(BUILD_MARKER): $(SRCFILES)
 	cargo build --release
-	-mkdir -p libexec/playlist-manager
-	-if [ -f target/release/plm-put-playlist.exe ]; then \
-		cp target/release/plm-put-playlist.exe libexec/playlist-manager/; \
-	else \
-		cp target/release/plm-put-playlist libexec/playlist-manager/; \
-	fi
-	-if [ -f target/release/plm-delete-playlist.exe ]; then \
-		cp target/release/plm-delete-playlist.exe libexec/playlist-manager/; \
-	else \
-		cp target/release/plm-delete-playlist libexec/playlist-manager/; \
-	fi
+	-mkdir -p libexec/playlist-manager && \
+	cp target/release/plm-put-playlist$(EXE) target/release/plm-delete-playlist$(EXE) libexec/playlist-manager/ && \
+	touch $(BUILD_MARKER)
 
 uninstall:
 	rm -rf $(BINDIR)/plm $(PLMBINDIR) $(MANDIR)/man1/plm.1 $(MANDIR)/man1/plm-*.1 $(MANDIR)/cat1/plm.1 $(MANDIR)/cat1/plm-*.1
@@ -57,6 +62,5 @@ test:
 	cargo test
 
 clean:
-	cargo clean
-	-rm -f libexec/playlist-manager/plm-put-playlist libexec/playlist-manager/plm-put-playlist.exe
-	-rm -f libexec/playlist-manager/plm-delete-playlist libexec/playlist-manager/plm-delete-playlist.exe
+	cargo clean && \
+	rm -f $(EXECUTABLES) $(BUILD_MARKER)

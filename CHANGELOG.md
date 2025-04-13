@@ -2,6 +2,8 @@
 
 ## [Unreleased][]
 
+* Changed
+  * Improve build process
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 
