@@ -135,8 +135,6 @@ fn copy_media_files(
                     })?;
 
                     n_files += 1;
-                } else if verbose {
-                    eprintln!("No lyrics file found for: {}", src_file.display());
                 }
             }
         }
