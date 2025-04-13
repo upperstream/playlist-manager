@@ -27,11 +27,11 @@ help:
 	@echo "clean"
 	@echo "     : Remove build artifacts"
 	@echo ""
-	@echo "'make' and 'install' are required."
+	@echo "'awk', 'make' and 'install' are required."
 
 install: build
 	mkdir -p $(BINDIR) $(PLMBINDIR) $(MANDIR)/man1
-	awk -f embed_version.awk bin/plm > $(BINDIR)/plm
+	awk -f embed_version.awk Cargo.toml bin/plm > $(BINDIR)/plm
 	chmod +x $(BINDIR)/plm
 	install libexec/playlist-manager/* $(PLMBINDIR)
 	install man/man1/* $(MANDIR)/man1

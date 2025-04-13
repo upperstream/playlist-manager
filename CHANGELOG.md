@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased][]
+
+* Fixed
+  * Fix install target to include Cargo.toml in version embedding
+
 ## [0.1.0][] - 2025-03-20
 
 * Added
@@ -57,6 +62,8 @@
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
+[Unreleased]:
+  https://github.com/upperstream/playlist-manager/compare/0.1.0...HEAD
 [0.1.0]:
   https://github.com/upperstream/playlist-manager/compare/0.0.4...0.1.0
 [0.0.4]:
