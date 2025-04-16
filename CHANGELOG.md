@@ -4,6 +4,12 @@
 
 * Changed:
   * Change version tag formatting to use 'v' prefix
+  * Refactor `plm-put-playlist` to extract functions for better code
+    organization and maintainability:
+    * Extract `copy_single_media_file()` from `copy_media_files()`
+    * Extract `retry_playlist()` and `retry_media_file()` from
+      `retry_operations()`
+    * Extract `process_normal_operations()` from the main function
 
 ## [v0.2.0][] - 2025-04-14
 
