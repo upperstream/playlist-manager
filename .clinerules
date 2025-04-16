@@ -1,5 +1,14 @@
 # Cline rules
 
+## Rules of Engagement
+
+* When you are caught in a loop, suspend the on-going task and raise
+  your hand early, so that I can break the complex task down into steps
+  before spending tokens.
+* Consider splitting source files when a production source file reaches
+  980 lines or when a test source file reaches 480 lines.  Avoid each
+  reaches 1000 lines and 500 lines respectively.
+
 ## Execution environment
 
 On Windows, use Git Bash or MSYS64 instead of PowerShell to ensure
