@@ -30,9 +30,9 @@ playlist-manager/
 │       ├── plm-put-playlist.rs
 │       └── plm-delete-playlist.rs
 ├── tests/
-│   ├── common.rs
-│   ├── put_playlist_tests.rs
-│   └── delete_playlist_tests.rs
+│   ├── integration_test_common.rs
+│   ├── integration_put_playlist_tests.rs
+│   └── integration_delete_playlist_tests.rs
 └── work/
     └── .keepme
 ```
@@ -90,9 +90,9 @@ separate executable.
 
 The `tests/` directory contains integration tests for the project:
 
-- `common.rs` - Common utility functions and test setup code
-- `put_playlist_tests.rs` - Tests for the put-playlist command
-- `delete_playlist_tests.rs` - Tests for the delete-playlist command
+- `integration_test_common.rs` - Common utility functions and test setup code
+- `integration_put_playlist_tests.rs` - Tests for the put-playlist command
+- `integration_delete_playlist_tests.rs` - Tests for the delete-playlist command
 
 ### work/
 

@@ -10,6 +10,12 @@
     * Extract `retry_playlist()` and `retry_media_file()` from
       `retry_operations()`
     * Extract `process_normal_operations()` from the main function
+  * Rename test files to clarify they are integration tests:
+    * Rename `tests/common.rs` to `tests/integration_test_common.rs`
+    * Rename `tests/put_playlist_tests.rs` to
+      `tests/integration_put_playlist_tests.rs`
+    * Rename `tests/delete_playlist_tests.rs` to
+      `tests/integration_delete_playlist_tests.rs`
 
 ## [v0.2.0][] - 2025-04-14
 

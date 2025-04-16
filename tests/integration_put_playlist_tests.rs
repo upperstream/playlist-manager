@@ -4,12 +4,12 @@ use std::path::Path;
 use assert_cmd::Command;
 use predicates::prelude::*;
 
-mod common;
+mod integration_test_common;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::{ create_test_file, setup_test_directory };
+    use integration_test_common::{ create_test_file, setup_test_directory };
 
     // Helper function to verify file exists and has expected content
     fn verify_file(path: &Path, expected_content: &str) -> bool {

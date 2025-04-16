@@ -1,8 +1,8 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 
-mod common;
-use common::{create_test_file, setup_test_directory};
+mod integration_test_common;
+use integration_test_common::{create_test_file, setup_test_directory};
 
 #[cfg(test)]
 mod tests {
