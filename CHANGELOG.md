@@ -2,6 +2,22 @@
 
 ## [Unreleased][]
 
+* Added:
+  * Add new output message format for `plm-put-playlist` when both `-l`
+    and `-v` options are given:
+    * For playlist files: `({}/{}) Copy playlist {} to {}`
+    * For media files: `({}-M/{}) Copy track {} to {}`
+    * For lyrics files: `({}-L/{}) Copy lyrics {} to {}`
+  * Update output message format for media files when only `-v` option
+    is given: `({}/{}) Copy track {} to {}`
+  * Add validation of error file creation at the beginning of
+    `plm-put-playlist` command to fail fast if the error file cannot be
+    created
+  * Update documentation to mention that the error file will be empty
+    if the operation completes successfully without errors
+  * Add `-k/--keep-going` option to `plm-delete-playlist` command to
+    continue operation despite errors, similar to the same option in
+    `plm-put-playlist` command
 * Changed:
   * Change version tag formatting to use 'v' prefix
   * Refactor `plm-put-playlist` to extract functions for better code
@@ -48,8 +64,8 @@
     avoid copying duplicate files
   * Update man page and documentation to add a separate synopsis for the
     retry operation (`-r/--retry` option) in `plm-put-playlist` command
-  * Update documentation to reflect that the `-r/--retry` option works with
-    the `-l/--lyrics` option in `plm-put-playlist` command
+  * Update documentation to reflect that the `-r/--retry` option works
+    with the `-l/--lyrics` option in `plm-put-playlist` command
 * Fixed
   * Fix install target to include Cargo.toml in version embedding
 

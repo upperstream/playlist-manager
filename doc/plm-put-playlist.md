@@ -184,8 +184,8 @@ The operation is done as follows:
    playlist file.  Then read the next line (say, line B) and if the
    next line is prefixed by "M", copy the media file and repeat until
    the file reaches the end or the line prefixed by "P".  If the line B
-   is prefixed by "P" (that is, two consecutive lines are prefixed by "P"),
-   copy media files in the first playlist.
+   is prefixed by "P" (that is, two consecutive lines are prefixed by
+   "P"), copy media files in the first playlist.
 4. When all files are copied, print the summary (the number of playlist
    files and the number of media files as the standard operation) to
    stdout.
@@ -230,6 +230,26 @@ Copy with verbose output:
 plm put-playlist --verbose /mnt/sdcard/MUSIC ~/MUSIC/playlist.m3u8
 ```
 
+When the `-v` option is given, the command will display messages about
+the copying process:
+
+- For playlist files: `({}/{}) Copy playlist {} to {}`
+- For media files: `({}/{}) Copy track {} to {}`
+
+When both `-v` and `-l` options are given, the command will display
+messages with additional type indicators:
+
+- For playlist files: `({}/{}) Copy playlist {} to {}`
+- For media files: `({}-M/{}) Copy track {} to {}`
+- For lyrics files: `({}-L/{}) Copy lyrics {} to {}`
+
+Where:
+
+- The first number is the current file being processed
+- The second number is the total number of files to be processed
+- The `-M` suffix indicates a media file
+- The `-L` suffix indicates a lyrics file
+
 ### Continue Despite Errors
 
 Copy playlists and media files, continuing despite errors:
@@ -240,7 +260,8 @@ plm put-playlist --keep-going /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/p
 
 ### Log Failed Files
 
-Copy playlists and media files, continuing despite errors and logging failed files:
+Copy playlists and media files, continuing despite errors and logging
+failed files:
 
 ```
 plm put-playlist --keep-going --error-files errors.log /mnt/sdcard/MUSIC ~/MUSIC/playlist1.m3u8 ~/MUSIC/playlist2.m3u8
@@ -264,7 +285,8 @@ plm put-playlist --retry errors.log --lyrics /mnt/sdcard/MUSIC
 
 ### Retry with New Error Log
 
-Retry failed operations and create a new error log for operations that still fail:
+Retry failed operations and create a new error log for operations that
+still fail:
 
 ```
 plm put-playlist --retry errors.log --keep-going --error-files new-errors.log /mnt/sdcard/MUSIC
@@ -294,9 +316,9 @@ The implementation is organised into several key functions:
    been copied
 7. `parse_error_file()`: Parses an error file and extracts failed
    playlists and media files
-9. `retry_operations()`: Retries failed operations from an error file
-10. `abs_dir()`: Gets the absolute path of a directory
-11. `print_message()`: Prints a message if verbose mode is enabled
+8. `retry_operations()`: Retries failed operations from an error file
+9. `abs_dir()`: Gets the absolute path of a directory
+10. `print_message()`: Prints a message if verbose mode is enabled
 
 ## Optimisation
 
@@ -311,5 +333,5 @@ The command optimises the copying process by:
 
 - [Overview](overview.md) - Playlist Manager overview
 - [plm](plm.md) - Main command documentation
-- [plm-delete-playlist](plm-delete-playlist.md) - Delete playlist command
-  documentation
+- [plm-delete-playlist](plm-delete-playlist.md) - Delete playlist
+  command documentation

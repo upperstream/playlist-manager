@@ -1,11 +1,11 @@
 use std::collections::HashSet;
-use std::fs::{ self, File };
-use std::io::{ self, BufRead, BufReader, Write };
-use std::path::{ Path, PathBuf };
+use std::fs::{self, File};
+use std::io::{self, BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
 use std::process;
 
-use anyhow::{ Context, Result };
-use clap::{ ArgAction, Parser };
+use anyhow::{Context, Result};
+use clap::{ArgAction, Parser};
 use thiserror::Error;
 
 #[derive(Parser)]
@@ -44,14 +44,16 @@ struct Cli {
 
 #[derive(Error, Debug)]
 enum AppError {
-    #[error("IO error: {0}")] Io(#[from] io::Error),
+    #[error("IO error: {0}")]
+    Io(#[from] io::Error),
 
-    #[error("Failed to get absolute path: {0}")] AbsPath(String),
+    #[error("Failed to get absolute path: {0}")]
+    AbsPath(String),
 }
 
 /// Enum to represent different types of failures
 enum FailureType {
-    Playlist(String), // Failed playlist path
+    Playlist(String),          // Failed playlist path
     MediaFile(String, String), // (src_basedir, file) for failed media file
 }
 
@@ -72,7 +74,8 @@ impl ErrorTracker {
     }
 
     fn add_failed_media_file(&mut self, src_basedir: String, file: String) {
-        self.failures.push(FailureType::MediaFile(src_basedir, file));
+        self.failures
+            .push(FailureType::MediaFile(src_basedir, file));
     }
 
     fn write_to_file(&self, path: &str) -> Result<(), io::Error> {
@@ -98,23 +101,59 @@ impl ErrorTracker {
 /// Get the absolute path of a directory
 fn abs_dir(path: &str) -> Result<String, AppError> {
     let path = Path::new(path);
-    let abs_path = fs
-        ::canonicalize(path)
-        .map_err(|e| {
-            AppError::AbsPath(format!("Failed to get absolute path for {}: {}", path.display(), e))
-        })?;
+    let abs_path = fs::canonicalize(path).map_err(|e| {
+        AppError::AbsPath(format!(
+            "Failed to get absolute path for {}: {}",
+            path.display(),
+            e
+        ))
+    })?;
 
     if !abs_path.is_dir() {
-        return Err(AppError::AbsPath(format!("{} is not a directory", abs_path.display())));
+        return Err(AppError::AbsPath(format!(
+            "{} is not a directory",
+            abs_path.display()
+        )));
     }
 
     Ok(abs_path.to_string_lossy().to_string())
 }
 
 /// Print a message if verbose mode is enabled
-fn print_message(verbose: bool, fmt: &str, args: &[&str]) {
+fn print_message(
+    verbose: bool,
+    fmt: &str,
+    args: &[&str],
+    current_count: Option<usize>,
+    total_count: Option<usize>,
+    file_type: Option<&str>,
+    copy_lyrics: bool,
+) {
     if verbose {
-        let message = args.iter().fold(fmt.to_string(), |acc, arg| acc.replacen("{}", arg, 1));
+        let message = if let (Some(current), Some(total)) = (current_count, total_count) {
+            // Format with counters
+            let counter_prefix = if let Some(ftype) = file_type {
+                if ftype == "lyrics" && copy_lyrics {
+                    format!("({}-L/{})", current, total)
+                } else if ftype == "media" && copy_lyrics {
+                    format!("({}-M/{})", current, total)
+                } else {
+                    format!("({}/{})", current, total)
+                }
+            } else {
+                format!("({}/{})", current, total)
+            };
+
+            let formatted_message = args
+                .iter()
+                .fold(fmt.to_string(), |acc, arg| acc.replacen("{}", arg, 1));
+            format!("{} {}", counter_prefix, formatted_message)
+        } else {
+            // Original format without counters
+            args.iter()
+                .fold(fmt.to_string(), |acc, arg| acc.replacen("{}", arg, 1))
+        };
+
         eprintln!("{}", message);
     }
 }
@@ -128,7 +167,9 @@ fn copy_single_media_file(
     verbose: bool,
     copy_lyrics: bool,
     keep_going: bool,
-    error_tracker: &mut Option<&mut ErrorTracker>
+    error_tracker: &mut Option<&mut ErrorTracker>,
+    current_file_num: Option<usize>,
+    total_files: Option<usize>,
 ) -> Result<(usize, bool)> {
     let mut n_files = 0;
     let file_path = Path::new(file);
@@ -141,9 +182,10 @@ fn copy_single_media_file(
         match fs::create_dir_all(&dest_dir) {
             Ok(_) => {}
             Err(e) => {
-                let err = anyhow::Error
-                    ::new(e)
-                    .context(format!("Failed to create directory: {}", dest_dir.display()));
+                let err = anyhow::Error::new(e).context(format!(
+                    "Failed to create directory: {}",
+                    dest_dir.display()
+                ));
                 if keep_going {
                     eprintln!("Error: {}", err);
                     if let Some(tracker) = error_tracker {
@@ -162,8 +204,12 @@ fn copy_single_media_file(
 
     print_message(
         verbose,
-        "Copy \"{}\" to \"{}\"",
-        &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()]
+        "Copy track \"{}\" to \"{}\"",
+        &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()],
+        current_file_num,
+        total_files,
+        Some("media"),
+        copy_lyrics,
     );
 
     match fs::copy(&src_file, &dest_file) {
@@ -171,11 +217,11 @@ fn copy_single_media_file(
             n_files += 1;
         }
         Err(e) => {
-            let err = anyhow::Error
-                ::new(e)
-                .context(
-                    format!("Failed to copy {} to {}", src_file.display(), dest_file.display())
-                );
+            let err = anyhow::Error::new(e).context(format!(
+                "Failed to copy {} to {}",
+                src_file.display(),
+                dest_file.display()
+            ));
             if keep_going {
                 eprintln!("Error: {}", err);
                 if let Some(tracker) = error_tracker {
@@ -200,7 +246,14 @@ fn copy_single_media_file(
                 print_message(
                     verbose,
                     "Copy lyrics \"{}\" to \"{}\"",
-                    &[&lyrics_path.to_string_lossy(), &dest_lyrics_file.to_string_lossy()]
+                    &[
+                        &lyrics_path.to_string_lossy(),
+                        &dest_lyrics_file.to_string_lossy(),
+                    ],
+                    current_file_num,
+                    total_files,
+                    Some("lyrics"),
+                    copy_lyrics,
                 );
 
                 match fs::copy(&lyrics_path, &dest_lyrics_file) {
@@ -208,15 +261,11 @@ fn copy_single_media_file(
                         n_files += 1;
                     }
                     Err(e) => {
-                        let err = anyhow::Error
-                            ::new(e)
-                            .context(
-                                format!(
-                                    "Failed to copy lyrics {} to {}",
-                                    lyrics_path.display(),
-                                    dest_lyrics_file.display()
-                                )
-                            );
+                        let err = anyhow::Error::new(e).context(format!(
+                            "Failed to copy lyrics {} to {}",
+                            lyrics_path.display(),
+                            dest_lyrics_file.display()
+                        ));
                         if keep_going {
                             eprintln!("Error: {}", err);
                             // We don't track lyrics files in the error tracker
@@ -241,12 +290,15 @@ fn copy_media_files(
     verbose: bool,
     copy_lyrics: bool,
     keep_going: bool,
-    error_tracker: &mut Option<&mut ErrorTracker>
+    error_tracker: &mut Option<&mut ErrorTracker>,
+    total_files: Option<usize>,
 ) -> Result<(usize, Vec<String>)> {
     let mut n_files = 0;
     let mut successful_files = Vec::new();
+    let files_vec: Vec<String> = files.collect();
 
-    for file in files {
+    for (i, file) in files_vec.into_iter().enumerate() {
+        let current_file_num = total_files.map(|_| i + 1);
         match copy_single_media_file(
             src_basedir,
             dest_basedir,
@@ -254,7 +306,9 @@ fn copy_media_files(
             verbose,
             copy_lyrics,
             keep_going,
-            error_tracker
+            error_tracker,
+            current_file_num,
+            total_files,
         ) {
             Ok((copied, success)) => {
                 n_files += copied;
@@ -277,9 +331,8 @@ fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|| ".".to_string());
 
-    let file = File::open(playlist).with_context(||
-        format!("Failed to open playlist: {}", playlist)
-    )?;
+    let file =
+        File::open(playlist).with_context(|| format!("Failed to open playlist: {}", playlist))?;
     let reader = BufReader::new(file);
 
     let media_files = reader
@@ -287,10 +340,18 @@ fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
         .filter_map(Result::ok)
         .map(|line| {
             // Remove BOM if present
-            let line = if line.starts_with('\u{feff}') { line[3..].to_string() } else { line };
+            let line = if line.starts_with('\u{feff}') {
+                line[3..].to_string()
+            } else {
+                line
+            };
 
             // Remove carriage return if present
-            let line = if line.ends_with('\r') { line[..line.len() - 1].to_string() } else { line };
+            let line = if line.ends_with('\r') {
+                line[..line.len() - 1].to_string()
+            } else {
+                line
+            };
 
             line
         })
@@ -311,13 +372,18 @@ fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
 }
 
 /// Copy a playlist file to the destination
-fn copy_playlist_file(playlist: &str, dest_basedir: &str, verbose: bool) -> Result<()> {
+fn copy_playlist_file(
+    playlist: &str,
+    dest_basedir: &str,
+    verbose: bool,
+    current_playlist_num: Option<usize>,
+    total_playlists: Option<usize>,
+) -> Result<()> {
     let playlist_path = Path::new(playlist);
     let dest_dir = PathBuf::from(dest_basedir);
 
     if !dest_dir.exists() {
-        fs
-            ::create_dir_all(&dest_dir)
+        fs::create_dir_all(&dest_dir)
             .with_context(|| format!("Failed to create directory: {}", dest_dir.display()))?;
     }
 
@@ -328,8 +394,7 @@ fn copy_playlist_file(playlist: &str, dest_basedir: &str, verbose: bool) -> Resu
     let dest_playlist = dest_dir.join(playlist_filename);
 
     // Check if the playlist contains backslashes
-    let playlist_content = fs
-        ::read_to_string(playlist)
+    let playlist_content = fs::read_to_string(playlist)
         .with_context(|| format!("Failed to read playlist: {}", playlist))?;
 
     let has_backslashes = playlist_content
@@ -350,21 +415,22 @@ fn copy_playlist_file(playlist: &str, dest_basedir: &str, verbose: bool) -> Resu
             .collect::<Vec<_>>()
             .join("\n");
 
-        fs
-            ::write(&dest_playlist, modified_content)
+        fs::write(&dest_playlist, modified_content)
             .with_context(|| format!("Failed to write playlist: {}", dest_playlist.display()))?;
     } else {
         print_message(
             verbose,
-            "Copy playlist \"{}\" into \"{}\"",
-            &[playlist, &format!("{}/", dest_basedir)]
+            "Copy playlist \"{}\" to \"{}\"",
+            &[playlist, &format!("{}/", dest_basedir)],
+            current_playlist_num,
+            total_playlists,
+            None,
+            false,
         );
 
-        fs
-            ::copy(playlist, &dest_playlist)
-            .with_context(|| {
-                format!("Failed to copy {} to {}", playlist, dest_playlist.display())
-            })?;
+        fs::copy(playlist, &dest_playlist).with_context(|| {
+            format!("Failed to copy {} to {}", playlist, dest_playlist.display())
+        })?;
     }
 
     Ok(())
@@ -375,18 +441,36 @@ fn process_playlist(
     playlist: &str,
     dest_basedir: &str,
     verbose: bool,
-    media_files_map: &mut Vec<(String, HashSet<String>)>
+    media_files_map: &mut Vec<(String, HashSet<String>)>,
+    current_playlist_num: Option<usize>,
+    total_playlists: Option<usize>,
 ) -> Result<(String, Vec<String>)> {
-    print_message(verbose, "Processing playlist \"{}\"", &[playlist]);
+    print_message(
+        verbose,
+        "Processing playlist \"{}\"",
+        &[playlist],
+        None,
+        None,
+        None,
+        false,
+    );
 
     // Copy the playlist file
-    copy_playlist_file(playlist, dest_basedir, verbose)?;
+    copy_playlist_file(
+        playlist,
+        dest_basedir,
+        verbose,
+        current_playlist_num,
+        total_playlists,
+    )?;
 
     // Extract media files
     let (src_basedir, files) = extract_media_files(playlist)?;
 
     // Add to the media files map
-    let entry = media_files_map.iter_mut().find(|(base, _)| *base == src_basedir);
+    let entry = media_files_map
+        .iter_mut()
+        .find(|(base, _)| *base == src_basedir);
 
     if let Some((_, files_set)) = entry {
         // Add files to existing set
@@ -409,7 +493,7 @@ fn process_playlist(
 fn filter_already_copied_files(
     src_basedir: &str,
     files: &[String],
-    copied_files: &HashSet<(String, String)>
+    copied_files: &HashSet<(String, String)>,
 ) -> Vec<String> {
     files
         .iter()
@@ -482,7 +566,11 @@ fn parse_error_file(path: &str) -> Result<(Vec<String>, Vec<(String, String)>)> 
         // Ignore any other lines
     }
 
-    println!("Parsed {} playlists and {} media files", playlists.len(), media_files.len());
+    println!(
+        "Parsed {} playlists and {} media files",
+        playlists.len(),
+        media_files.len()
+    );
 
     Ok((playlists, media_files))
 }
@@ -496,36 +584,53 @@ fn retry_playlist(
     keep_going: bool,
     error_tracker: &mut Option<&mut ErrorTracker>,
     media_files_map: &mut Vec<(String, HashSet<String>)>,
-    copied_files: &mut HashSet<(String, String)>
+    copied_files: &mut HashSet<(String, String)>,
+    current_playlist_num: Option<usize>,
+    total_playlists: Option<usize>,
+    total_media_files: Option<usize>,
 ) -> Result<(bool, usize)> {
-    print_message(verbose, "Retrying playlist \"{}\"", &[playlist]);
+    print_message(
+        verbose,
+        "Retrying playlist \"{}\"",
+        &[playlist],
+        None,
+        None,
+        None,
+        false,
+    );
 
-    match process_playlist(playlist, dest_dir, verbose, media_files_map) {
+    match process_playlist(
+        playlist,
+        dest_dir,
+        verbose,
+        media_files_map,
+        current_playlist_num,
+        total_playlists,
+    ) {
         Ok((src_basedir, files)) => {
             // Copy media files for this playlist
-            let files_to_copy = filter_already_copied_files(
-                &src_basedir,
-                &files,
-                copied_files
-            );
+            let files_to_copy = filter_already_copied_files(&src_basedir, &files, copied_files);
 
             print_message(
                 verbose,
                 "Copying {} media files for playlist \"{}\"",
-                &[&files_to_copy.len().to_string(), playlist]
+                &[&files_to_copy.len().to_string(), playlist],
+                None,
+                None,
+                None,
+                lyrics,
             );
 
-            match
-                copy_media_files(
-                    &src_basedir,
-                    dest_dir,
-                    files_to_copy.into_iter(),
-                    verbose,
-                    lyrics,
-                    keep_going,
-                    error_tracker
-                )
-            {
+            match copy_media_files(
+                &src_basedir,
+                dest_dir,
+                files_to_copy.into_iter(),
+                verbose,
+                lyrics,
+                keep_going,
+                error_tracker,
+                total_media_files,
+            ) {
                 Ok((_, successful_files)) => {
                     let successful_count = successful_files.len();
 
@@ -567,12 +672,18 @@ fn retry_media_file(
     lyrics: bool,
     keep_going: bool,
     error_tracker: &mut Option<&mut ErrorTracker>,
-    copied_files: &mut HashSet<(String, String)>
+    copied_files: &mut HashSet<(String, String)>,
+    _current_file_num: Option<usize>,
+    total_media_files: Option<usize>,
 ) -> Result<usize> {
     print_message(
         verbose,
         "Retrying media file \"{}\"",
-        &[&Path::new(src_basedir).join(file).to_string_lossy()]
+        &[&Path::new(src_basedir).join(file).to_string_lossy()],
+        None,
+        None,
+        None,
+        false,
     );
 
     // Check if this file has already been copied
@@ -580,23 +691,26 @@ fn retry_media_file(
         print_message(
             verbose,
             "Skipping already copied file \"{}\"",
-            &[&Path::new(src_basedir).join(file).to_string_lossy()]
+            &[&Path::new(src_basedir).join(file).to_string_lossy()],
+            None,
+            None,
+            None,
+            false,
         );
         return Ok(1);
     }
 
     // Copy the file
-    match
-        copy_media_files(
-            src_basedir,
-            dest_dir,
-            std::iter::once(file.to_string()),
-            verbose,
-            lyrics,
-            keep_going,
-            error_tracker
-        )
-    {
+    match copy_media_files(
+        src_basedir,
+        dest_dir,
+        std::iter::once(file.to_string()),
+        verbose,
+        lyrics,
+        keep_going,
+        error_tracker,
+        total_media_files,
+    ) {
         Ok((_, successful_files)) => {
             let successful_count = successful_files.len();
 
@@ -628,9 +742,17 @@ fn retry_operations(
     verbose: bool,
     lyrics: bool,
     keep_going: bool,
-    error_tracker: &mut Option<&mut ErrorTracker>
+    error_tracker: &mut Option<&mut ErrorTracker>,
 ) -> Result<(usize, usize, usize, usize)> {
-    print_message(verbose, "Retrying operations from error file \"{}\"", &[retry_file]);
+    print_message(
+        verbose,
+        "Retrying operations from error file \"{}\"",
+        &[retry_file],
+        None,
+        None,
+        None,
+        false,
+    );
 
     let (playlists, media_files) = parse_error_file(retry_file)?;
 
@@ -642,7 +764,7 @@ fn retry_operations(
     let mut copied_files: HashSet<(String, String)> = HashSet::new();
 
     // Process playlists first
-    for playlist in &playlists {
+    for (i, playlist) in playlists.iter().enumerate() {
         match retry_playlist(
             playlist,
             dest_dir,
@@ -651,7 +773,10 @@ fn retry_operations(
             keep_going,
             error_tracker,
             &mut media_files_map,
-            &mut copied_files
+            &mut copied_files,
+            Some(i + 1),
+            Some(total_playlists),
+            Some(total_media_files),
         ) {
             Ok((success, count)) => {
                 if success {
@@ -664,7 +789,7 @@ fn retry_operations(
     }
 
     // Process media files
-    for (src_basedir, file) in &media_files {
+    for (i, (src_basedir, file)) in media_files.iter().enumerate() {
         match retry_media_file(
             src_basedir,
             file,
@@ -673,7 +798,9 @@ fn retry_operations(
             lyrics,
             keep_going,
             error_tracker,
-            &mut copied_files
+            &mut copied_files,
+            Some(i + 1),
+            Some(total_media_files),
         ) {
             Ok(count) => {
                 successful_media_files += count;
@@ -682,7 +809,12 @@ fn retry_operations(
         }
     }
 
-    Ok((successful_playlists, total_playlists, successful_media_files, total_media_files))
+    Ok((
+        successful_playlists,
+        total_playlists,
+        successful_media_files,
+        total_media_files,
+    ))
 }
 
 /// Process normal operations (non-retry mode)
@@ -692,7 +824,7 @@ fn process_normal_operations(
     verbose: bool,
     lyrics: bool,
     keep_going: bool,
-    error_tracker_ref: &mut Option<&mut ErrorTracker>
+    error_tracker_ref: &mut Option<&mut ErrorTracker>,
 ) -> Result<(usize, usize, usize, usize)> {
     let total_playlists = playlists.len();
     let mut successful_playlists = 0;
@@ -702,17 +834,29 @@ fn process_normal_operations(
     let mut copied_files: HashSet<(String, String)> = HashSet::new();
 
     // Process each playlist and copy its media files one-by-one
-    for playlist in playlists {
-        print_message(verbose, "Put playlist \"{}\" into \"{}\"", &[playlist, dest_dir]);
+    for (i, playlist) in playlists.iter().enumerate() {
+        print_message(
+            verbose,
+            "Put playlist \"{}\" into \"{}\"",
+            &[playlist, dest_dir],
+            None,
+            None,
+            None,
+            false,
+        );
 
-        match process_playlist(playlist, dest_dir, verbose, &mut media_files_map) {
+        match process_playlist(
+            playlist,
+            dest_dir,
+            verbose,
+            &mut media_files_map,
+            Some(i + 1),
+            Some(total_playlists),
+        ) {
             Ok((src_basedir, files)) => {
                 // Filter out already copied files
-                let files_to_copy = filter_already_copied_files(
-                    &src_basedir,
-                    &files,
-                    &copied_files
-                );
+                let files_to_copy =
+                    filter_already_copied_files(&src_basedir, &files, &copied_files);
 
                 // Count total media files (excluding lyrics)
                 total_media_files += files_to_copy.len();
@@ -720,21 +864,24 @@ fn process_normal_operations(
                 print_message(
                     verbose,
                     "Copying {} media files for playlist \"{}\"",
-                    &[&files_to_copy.len().to_string(), playlist]
+                    &[&files_to_copy.len().to_string(), playlist],
+                    None,
+                    None,
+                    None,
+                    lyrics,
                 );
 
                 // Copy files for this playlist
-                match
-                    copy_media_files(
-                        &src_basedir,
-                        dest_dir,
-                        files_to_copy.into_iter(),
-                        verbose,
-                        lyrics,
-                        keep_going,
-                        error_tracker_ref
-                    )
-                {
+                match copy_media_files(
+                    &src_basedir,
+                    dest_dir,
+                    files_to_copy.into_iter(),
+                    verbose,
+                    lyrics,
+                    keep_going,
+                    error_tracker_ref,
+                    Some(total_media_files),
+                ) {
                     Ok((_copied, successful_files)) => {
                         // Count successful media files (excluding lyrics)
                         // The copy_media_files function returns the total number of files copied,
@@ -747,9 +894,7 @@ fn process_normal_operations(
                                 .filter(|file| {
                                     let file_path = Path::new(file);
                                     if let Some(stem) = file_path.file_stem() {
-                                        let dir_part = file_path
-                                            .parent()
-                                            .unwrap_or(Path::new(""));
+                                        let dir_part = file_path.parent().unwrap_or(Path::new(""));
                                         let lyrics_path = Path::new(&src_basedir)
                                             .join(dir_part)
                                             .join(format!("{}.lrc", stem.to_string_lossy()));
@@ -792,7 +937,12 @@ fn process_normal_operations(
         }
     }
 
-    Ok((successful_playlists, total_playlists, successful_media_files, total_media_files))
+    Ok((
+        successful_playlists,
+        total_playlists,
+        successful_media_files,
+        total_media_files,
+    ))
 }
 
 fn main() -> Result<()> {
@@ -813,9 +963,8 @@ fn main() -> Result<()> {
     }
 
     // Initialize error tracker if --error-files is specified
-    let mut error_tracker: Option<ErrorTracker> = cli.error_files
-        .as_ref()
-        .map(|_| ErrorTracker::new());
+    let mut error_tracker: Option<ErrorTracker> =
+        cli.error_files.as_ref().map(|_| ErrorTracker::new());
     let mut error_tracker_ref: Option<&mut ErrorTracker> = error_tracker.as_mut();
 
     let dest_dir = match abs_dir(&cli.dest) {
@@ -829,21 +978,28 @@ fn main() -> Result<()> {
     // Check if we're in retry mode
     if let Some(retry_file) = &cli.retry_file {
         // Process retry operations
-        match
-            retry_operations(
-                retry_file,
-                &dest_dir,
-                cli.verbose,
-                cli.lyrics,
-                cli.keep_going,
-                &mut error_tracker_ref
-            )
-        {
-            Ok(
-                (successful_playlists, total_playlists, successful_media_files, total_media_files),
-            ) => {
-                println!("({}/{}) playlist copied", successful_playlists, total_playlists);
-                println!("({}/{}) media files copied", successful_media_files, total_media_files);
+        match retry_operations(
+            retry_file,
+            &dest_dir,
+            cli.verbose,
+            cli.lyrics,
+            cli.keep_going,
+            &mut error_tracker_ref,
+        ) {
+            Ok((
+                successful_playlists,
+                total_playlists,
+                successful_media_files,
+                total_media_files,
+            )) => {
+                println!(
+                    "({}/{}) playlist copied",
+                    successful_playlists, total_playlists
+                );
+                println!(
+                    "({}/{}) media files copied",
+                    successful_media_files, total_media_files
+                );
             }
             Err(e) => {
                 eprintln!("Error during retry operations: {}", e);
@@ -858,11 +1014,22 @@ fn main() -> Result<()> {
             cli.verbose,
             cli.lyrics,
             cli.keep_going,
-            &mut error_tracker_ref
+            &mut error_tracker_ref,
         ) {
-            Ok((successful_playlists, total_playlists, successful_media_files, total_media_files)) => {
-                println!("({}/{}) playlist copied", successful_playlists, total_playlists);
-                println!("({}/{}) media files copied", successful_media_files, total_media_files);
+            Ok((
+                successful_playlists,
+                total_playlists,
+                successful_media_files,
+                total_media_files,
+            )) => {
+                println!(
+                    "({}/{}) playlist copied",
+                    successful_playlists, total_playlists
+                );
+                println!(
+                    "({}/{}) media files copied",
+                    successful_media_files, total_media_files
+                );
             }
             Err(e) => {
                 eprintln!("Error during normal operations: {}", e);
