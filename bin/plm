@@ -8,7 +8,21 @@ absdir() {
 }
 
 print_version() {
-	printf "playlist-manager version %s\n" "@VERSION@"
+	if [ "$1" = "-H" ] || [ "$1" = "--help" ]; then
+		print_version_help
+	else
+		printf "playlist-manager version %s\n" "@VERSION@"
+	fi
+}
+
+print_version_help() {
+	cat <<-EOF
+	Usage:
+	  $program version
+
+	Display version information for the Playlist Manager and quit.
+	This is equivalent to using the -V/--version option.
+	EOF
 }
 
 program=${0##*/}
@@ -24,6 +38,7 @@ print_usage() {
 	  $program put-playlist -r file [-v] [-l] [-e file] [-k] dest
 	  $program delete-playlist [options] playlist [...]
 	  $program help [subcommand]
+	  $program version
 	  $program -H | --help
 	  $program -V | --version
 
@@ -36,6 +51,8 @@ print_usage() {
 	help [subcommand]
 	    : print help screen of subcommand and quit.  If subcommand is
 	      omitted, help for 'plm' itself is displayed.
+	version
+	    : print version information and quit.
 	-H | --help
 	    : print help screen for 'plm' command and quit.
 	-V | --version
@@ -52,6 +69,9 @@ exec_subcommand() {
 help() {
 	if [ $# -lt 1 ]; then
 		print_usage
+		exit
+	elif [ "$1" = "version" ]; then
+		print_version_help
 		exit
 	else
 		exec_subcommand "$1" --help
@@ -91,6 +111,6 @@ case "$subcommand" in
 	help) help "$@"; exit;;
 	put-playlist) exec_subcommand "$subcommand" $verbosity "$@";;
 	delete-playlist) exec_subcommand "$subcommand" $verbosity "$@";;
-	version) print_version; exit;;
+	version) print_version "$@"; exit;;
 	*) printf "%s: Unknown command '%s'\n" "$0" "$subcommand"; exit 255;;
 esac

@@ -13,7 +13,7 @@
 .Cm help Op Ar command
 .br
 .Nm
-.Cm version
+.Cm version Oo Fl H | -help Oc
 .br
 .Nm
 .Fl H | -help
@@ -43,7 +43,12 @@ command itself and quits.
 .Pp
 The third synopsys displays the version information for
 .Nm
-and quits.
+and quits. If
+.Fl H
+or
+.Fl -help
+option is given, it displays help information for the version subcommand
+instead.
 .Pp
 The fourth synopsys displays a help screen for
 .Nm
@@ -87,10 +92,15 @@ command itself.
 See
 .Xr plm-help 1
 for details.
-.It Cm version
+.It Cm version Oo Fl H | -help Oc
 Display the version information for
 .Nm
-and quit.
+and quit. If
+.Fl H
+or
+.Fl -help
+option is given, display help information for the version subcommand
+instead.
 .El
 .Sh EXIT STATUS
 .Bl -tag -compact

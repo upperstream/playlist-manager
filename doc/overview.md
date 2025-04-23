@@ -54,6 +54,7 @@ graph TD
 
 4. **Version Command (`plm version`)**
    - Displays version information for the Playlist Manager
+   - Accepts `-H/--help` flags to display help information
    - Implemented directly in the main `plm` script
 
 ## Common Components

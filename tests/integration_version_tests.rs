@@ -45,4 +45,37 @@ mod tests {
             .success()
             .stdout(predicate::str::contains("playlist-manager version"));
     }
+
+    #[test]
+    fn test_help_version() {
+        let plm_path = get_plm_path();
+        let mut cmd = Command::new(&plm_path);
+        let assert = cmd.args(["help", "version"]).assert();
+
+        assert
+            .success()
+            .stdout(predicate::str::contains("Display version information"));
+    }
+
+    #[test]
+    fn test_version_help_flag_short() {
+        let plm_path = get_plm_path();
+        let mut cmd = Command::new(&plm_path);
+        let assert = cmd.args(["version", "-H"]).assert();
+
+        assert
+            .success()
+            .stdout(predicate::str::contains("Display version information"));
+    }
+
+    #[test]
+    fn test_version_help_flag_long() {
+        let plm_path = get_plm_path();
+        let mut cmd = Command::new(&plm_path);
+        let assert = cmd.args(["version", "--help"]).assert();
+
+        assert
+            .success()
+            .stdout(predicate::str::contains("Display version information"));
+    }
 }

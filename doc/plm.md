@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `plm` command is the main entry point for the Playlist Manager tool.  
+The `plm` command is the main entry point for the Playlist Manager tool.
 It provides a unified interface to access various subcommands for
 manipulating playlists and associated media files between a PC and audio
 playback devices.
@@ -57,8 +57,11 @@ plm help [COMMAND]
 Displays version information for the `plm` command and exits.
 
 ```
-plm version
+plm version [-H|--help]
 ```
+
+If the `-H` or `--help` option is given, displays help information for
+the version subcommand instead.
 
 ## Workflow
 
@@ -110,6 +113,18 @@ plm help put-playlist
 
 ```
 plm version
+```
+
+### Get help for the version subcommand
+
+```
+plm version --help
+```
+
+or
+
+```
+plm help version
 ```
 
 ## Implementation Details
