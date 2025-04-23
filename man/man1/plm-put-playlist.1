@@ -120,11 +120,12 @@ option. If used without the keep-going option and not with the retry
 option, the command will print an error message to stderr and exit with
 status code 255.  When used correctly, the command will write the list
 of playlist files and media files that failed to copy to the specified
-file.  Each line in the error file is prefixed with either "P " for
-failed playlists or "M " for failed media files, and the entries are
-listed in the order they failed. If the file cannot be created, the
-command will print an error message to stderr and exit with status code
-2.
+file.  If no errors occur during the operation, the error file will be
+created but remain empty.  Each line in the error file is prefixed with
+either "P " for failed playlists or "M " for failed media files, and
+the entries are listed in the order they failed.  If the file cannot be
+created, the command will print an error message to stderr and exit
+with status code 2.
 .Pp
 When
 .Fl r

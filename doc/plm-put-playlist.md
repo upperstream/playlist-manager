@@ -153,11 +153,13 @@ playlist copied" and "(c/d) media files copied", where:
 
 When the `-e, --error-files` option is specified along with
 `-k, --keep-going`, the command will write the list of playlist files
-and media files that failed to copy to the specified file.  Each line
-in the error file is prefixed with either "P " for failed playlists or
-"M " for failed media files, and the entries are listed in the order
-they failed.  If the file cannot be created, the command will print an
-error message to stderr and exit with status code 2.
+and media files that failed to copy to the specified file.  If no errors
+occur during the operation, the error file will be created but remain
+empty.  Each line in the error file is prefixed with either "P " for
+failed playlists or "M " for failed media files, and the entries are
+listed in the order they failed.  If the file cannot be created, the
+command will print an error message to stderr and exit with status code
+2.
 
 If the `-e, --error-files` option is used without the `-k, --keep-going`
 option and not with the `-r, --retry` option, the command will print an

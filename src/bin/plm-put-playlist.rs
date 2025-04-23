@@ -997,6 +997,20 @@ fn main() -> Result<()> {
         }
     }
 
+    // Test if error file can be created (fail fast)
+    if let Some(error_file) = &cli.error_files {
+        match File::create(error_file) {
+            Ok(_) => {
+                // File can be created, we'll write to it at the end if needed
+                // The file will remain empty if no errors occur
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to create error log file: {}", e);
+                process::exit(2);
+            }
+        }
+    }
+
     // Initialize error tracker if --error-files is specified
     let mut error_tracker: Option<ErrorTracker> =
         cli.error_files.as_ref().map(|_| ErrorTracker::new());
