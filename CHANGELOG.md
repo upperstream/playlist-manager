@@ -34,6 +34,7 @@
       `tests/integration_put_playlist_tests.rs`
     * Rename `tests/delete_playlist_tests.rs` to
       `tests/integration_delete_playlist_tests.rs`
+  * Strip executables during installation
 * Fixed:
   * Fix file counting in `plm-put-playlist` to ensure the n-th file to
     copy is the n-th file of all files to copy across all playlist

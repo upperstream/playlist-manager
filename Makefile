@@ -10,6 +10,7 @@ PLMBINDIR=$(PREFIX)/libexec/playlist-manager
 MANDIR=$(PREFIX)/share/man
 BUILDDIR=libexec/playlist-manager
 EXECUTABLES=$(BUILDDIR)/plm-put-playlist$(EXE) $(BUILDDIR)/plm-delete-playlist$(EXE)
+INSTALL=install
 SRCFILES=src/bin/*.rs
 BUILD_MARKER=$(WORKDIR)/.build_successful
 
@@ -41,8 +42,8 @@ install: build
 	mkdir -p $(BINDIR) $(PLMBINDIR) $(MANDIR)/man1
 	awk -f embed_version.awk Cargo.toml bin/plm > $(BINDIR)/plm
 	chmod +x $(BINDIR)/plm
-	install libexec/playlist-manager/* $(PLMBINDIR)
-	install man/man1/* $(MANDIR)/man1
+	$(INSTALL) -s libexec/playlist-manager/* $(PLMBINDIR)
+	$(INSTALL) man/man1/* $(MANDIR)/man1
 
 build: $(EXECUTABLES)
 
