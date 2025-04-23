@@ -2,6 +2,8 @@
 
 ## [Unreleased][]
 
+## [v0.2.1][] - 2025-04-23
+
 * Added:
   * Add new output message format for `plm-put-playlist` when both `-l`
     and `-v` options are given:
@@ -132,7 +134,9 @@
       (direct access to MTP device is not supported)
 
 [Unreleased]:
-  https://github.com/upperstream/playlist-manager/compare/v0.2.0...HEAD
+  https://github.com/upperstream/playlist-manager/compare/v0.2.1...HEAD
+[v0.2.1]:
+  https://github.com/upperstream/playlist-manager/compare/v0.2.0...v0.2.1
 [v0.2.0]:
   https://github.com/upperstream/playlist-manager/compare/v0.1.0...v0.2.0
 [v0.1.0]:
