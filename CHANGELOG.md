@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased][]
+## [v0.3.0][] - 2025-04-24
 
 * Added:
   * Add 'version' subcommand to `plm` to display version information and
@@ -138,8 +138,8 @@
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
-[Unreleased]:
-  https://github.com/upperstream/playlist-manager/compare/v0.2.1...HEAD
+[v0.3.0]:
+  https://github.com/upperstream/playlist-manager/compare/v0.2.1...v0.3.0
 [v0.2.1]:
   https://github.com/upperstream/playlist-manager/compare/v0.2.0...v0.2.1
 [v0.2.0]:
