@@ -52,6 +52,14 @@ command itself.
 plm help [COMMAND]
 ```
 
+### version
+
+Displays version information for the `plm` command and exits.
+
+```
+plm version
+```
+
 ## Workflow
 
 ```mermaid
@@ -96,6 +104,12 @@ plm delete-playlist --media /mnt/sdcard/MUSIC/playlist.m3u8
 
 ```
 plm help put-playlist
+```
+
+### Display version information
+
+```
+plm version
 ```
 
 ## Implementation Details

@@ -2,6 +2,10 @@
 
 ## [Unreleased][]
 
+* Added:
+  * Add 'version' subcommand to `plm` to display version information and
+    quit, as an alternative to the `-V/--version` flags
+
 ## [v0.2.1][] - 2025-04-23
 
 * Added:

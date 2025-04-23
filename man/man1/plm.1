@@ -1,4 +1,4 @@
-.Dd March 6, 2025
+.Dd April 24, 2025
 .Dt PLM 1
 .Os Playlist Manager
 .Sh NAME
@@ -11,6 +11,9 @@
 .br
 .Nm
 .Cm help Op Ar command
+.br
+.Nm
+.Cm version
 .br
 .Nm
 .Fl H | -help
@@ -38,13 +41,19 @@ parameter is omitted, it displays a help screen for
 .Nm
 command itself and quits.
 .Pp
-The third synopsys displays a help screen for
-.B plm
+The third synopsys displays the version information for
+.Nm
 and quits.
 .Pp
-The fourth synopsys displays the version information for
-.B plm
+The fourth synopsys displays a help screen for
+.Nm
 and quits.
+.Pp
+The fifth synopsys displays the version information for
+.Nm
+and quits.  This is a shortcut to
+.Nm
+.Cm version .
 .Sh "PLM SUBCOMMANDS"
 The
 .Nm
@@ -78,6 +87,10 @@ command itself.
 See
 .Xr plm-help 1
 for details.
+.It Cm version
+Display the version information for
+.Nm
+and quit.
 .El
 .Sh EXIT STATUS
 .Bl -tag -compact

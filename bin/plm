@@ -91,5 +91,6 @@ case "$subcommand" in
 	help) help "$@"; exit;;
 	put-playlist) exec_subcommand "$subcommand" $verbosity "$@";;
 	delete-playlist) exec_subcommand "$subcommand" $verbosity "$@";;
+	version) print_version; exit;;
 	*) printf "%s: Unknown command '%s'\n" "$0" "$subcommand"; exit 255;;
 esac

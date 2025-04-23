@@ -50,6 +50,12 @@ There are couples of features to add:
 * Delete albums on a device
 * Create a playlist file with associated media files on a PC
 * Direct access to MTP device
+* Capture a signal `SIGUSR1` or `SIGINFO` and displays the current
+  status during the operation of  `plm put-playlist` and
+  `plm delete-playlist` without `-v` option
+* Add an option to display a progress bar during the operation of
+  `plm put-playlist` and `plm delete-playlist` without `-v` option
+* Copy media files only when the source is newer than the destination
 
 ## Licensing
 

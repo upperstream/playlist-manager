@@ -23,10 +23,12 @@ graph TD
     A[plm] --> B[plm-put-playlist]
     A --> C[plm-delete-playlist]
     A --> D[plm-help]
+    A --> I[plm-version]
     
     B --> E[Copy Playlists & Media]
     C --> F[Delete Playlists & Media]
     D --> G[Display Help]
+    I --> J[Display Version]
     
     E --> H[File System]
     F --> H
@@ -49,6 +51,10 @@ graph TD
    - Deletes playlist files from device
    - Optionally deletes associated media files
    - Cleans up empty directories
+
+4. **Version Command (`plm version`)**
+   - Displays version information for the Playlist Manager
+   - Implemented directly in the main `plm` script
 
 ## Common Components
 
