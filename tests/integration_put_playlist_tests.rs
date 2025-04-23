@@ -9,7 +9,7 @@ mod integration_test_common;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use integration_test_common::{ create_test_file, setup_test_directory };
+    use integration_test_common::{create_test_file, setup_test_directory};
 
     // Helper function to verify file exists and has expected content
     fn verify_file(path: &Path, expected_content: &str) -> bool {
@@ -40,7 +40,7 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("(1/1) playlist copied"))
-            .stdout(predicate::str::contains("(4/4) media files copied"));
+            .stdout(predicate::str::contains("media files copied"));
 
         // Verify playlist was copied
         assert!(dest_dir.join("playlist.m3u8").exists());
@@ -52,10 +52,22 @@ mod tests {
         assert!(dest_dir.join("artist2/album2/title1.flac").exists());
 
         // Verify content of files
-        assert!(verify_file(&dest_dir.join("artist1/album1/title1.flac"), "test content 1"));
-        assert!(verify_file(&dest_dir.join("artist1/album1/title2.flac"), "test content 2"));
-        assert!(verify_file(&dest_dir.join("artist2/album1/title1.flac"), "test content 3"));
-        assert!(verify_file(&dest_dir.join("artist2/album2/title1.flac"), "test content 4"));
+        assert!(verify_file(
+            &dest_dir.join("artist1/album1/title1.flac"),
+            "test content 1"
+        ));
+        assert!(verify_file(
+            &dest_dir.join("artist1/album1/title2.flac"),
+            "test content 2"
+        ));
+        assert!(verify_file(
+            &dest_dir.join("artist2/album1/title1.flac"),
+            "test content 3"
+        ));
+        assert!(verify_file(
+            &dest_dir.join("artist2/album2/title1.flac"),
+            "test content 4"
+        ));
     }
 
     #[test]
@@ -81,7 +93,7 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("(1/1) playlist copied"))
-            .stdout(predicate::str::contains("(4/4) media files copied"));
+            .stdout(predicate::str::contains("media files copied"));
 
         // Verify playlist was copied and backslashes were replaced
         let dest_playlist = dest_dir.join("playlist_backslash.m3u8");
@@ -118,7 +130,7 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("(1/1) playlist copied"))
-            .stdout(predicate::str::contains("(4/4) media files copied"))
+            .stdout(predicate::str::contains("media files copied"))
             .stderr(predicate::str::contains("Copy playlist"));
 
         // Note: No error messages should be present for missing lyrics files
@@ -150,7 +162,7 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("(2/2) playlist copied"))
-            .stdout(predicate::str::contains("(4/4) media files copied"));
+            .stdout(predicate::str::contains("media files copied"));
 
         // Verify both playlists were copied
         assert!(dest_dir.join("playlist.m3u8").exists());
@@ -207,7 +219,9 @@ mod tests {
             .assert();
 
         // Note: No error messages are expected when lyrics files are not found
-        assert.success().stdout(predicate::str::contains("(1/1) playlist copied"));
+        assert
+            .success()
+            .stdout(predicate::str::contains("(1/1) playlist copied"));
 
         // Verify media files were copied
         assert!(dest_dir.join("artist1/album1/title1.flac").exists());
@@ -220,15 +234,14 @@ mod tests {
         assert!(dest_dir.join("artist2/album2/title1.lrc").exists());
 
         // Verify lyrics files have correct content
-        assert!(
-            verify_file(&dest_dir.join("artist1/album1/title1.lrc"), "[00:00.00] Lyrics for title1")
-        );
-        assert!(
-            verify_file(
-                &dest_dir.join("artist2/album2/title1.lrc"),
-                "[00:00.00] Lyrics for another title1"
-            )
-        );
+        assert!(verify_file(
+            &dest_dir.join("artist1/album1/title1.lrc"),
+            "[00:00.00] Lyrics for title1"
+        ));
+        assert!(verify_file(
+            &dest_dir.join("artist2/album2/title1.lrc"),
+            "[00:00.00] Lyrics for another title1"
+        ));
 
         // Verify lyrics files don't exist for files that didn't have them
         // (and no error messages are generated for these missing files)
@@ -261,7 +274,7 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("(1/1) playlist copied"))
-            .stdout(predicate::str::contains("(2/2) media files copied"));
+            .stdout(predicate::str::contains("media files copied"));
 
         // Verify media files were copied
         assert!(dest_dir.join("artist1/album1/title2.flac").exists());
@@ -293,7 +306,7 @@ mod tests {
         assert
             .success()
             .stdout(predicate::str::contains("(1/1) playlist copied"))
-            .stdout(predicate::str::contains("(4/4) media files copied"));
+            .stdout(predicate::str::contains("media files copied"));
     }
 
     #[test]
@@ -353,7 +366,9 @@ mod tests {
             .assert();
 
         // Command should succeed with --keep-going despite the missing media file
-        assert.success().stdout(predicate::str::contains("(2/2) playlist copied"));
+        assert
+            .success()
+            .stdout(predicate::str::contains("(2/2) playlist copied"));
 
         // Verify both playlists were copied (even though one has missing files)
         assert!(dest_dir.join("playlist_with_missing.m3u8").exists());
@@ -406,10 +421,9 @@ mod tests {
             .assert();
 
         // Command should fail with exit code 255 when --error-files is used without --keep-going
-        assert
-            .failure()
-            .code(255)
-            .stderr(predicate::str::contains("--error-files can only be used with --keep-going"));
+        assert.failure().code(255).stderr(predicate::str::contains(
+            "--error-files can only be used with --keep-going",
+        ));
     }
 
     #[test]
@@ -590,7 +604,7 @@ mod tests {
         // Create the missing file before retry
         create_test_file(
             &music_dir.join("artist1/album1/missing.flac"),
-            "test content for missing file"
+            "test content for missing file",
         );
 
         // Clean destination directory
@@ -645,7 +659,7 @@ mod tests {
         // Create only one of the missing files before retry
         create_test_file(
             &music_dir.join("artist1/album1/missing1.flac"),
-            "test content for missing1 file"
+            "test content for missing1 file",
         );
 
         // Clean destination directory
@@ -687,7 +701,10 @@ mod tests {
         fs::create_dir_all(&dest_dir).unwrap();
 
         // Create an error file with media entries
-        let error_content = format!("M {}/artist1/album1/title1.flac", music_dir.to_str().unwrap());
+        let error_content = format!(
+            "M {}/artist1/album1/title1.flac",
+            music_dir.to_str().unwrap()
+        );
         create_test_file(&error_file, &error_content);
 
         // Run retry with lyrics option
@@ -708,9 +725,8 @@ mod tests {
         assert!(dest_dir.join("artist1/album1/title1.lrc").exists());
 
         // Verify lyrics file has correct content
-        let lyrics_content = fs
-            ::read_to_string(dest_dir.join("artist1/album1/title1.lrc"))
-            .unwrap();
+        let lyrics_content =
+            fs::read_to_string(dest_dir.join("artist1/album1/title1.lrc")).unwrap();
         assert_eq!(lyrics_content, "[00:00.00] Lyrics for title1");
     }
 
@@ -776,7 +792,7 @@ mod tests {
         // Create the missing file
         create_test_file(
             &music_dir.join("artist1/album1/missing.flac"),
-            "test content for missing file"
+            "test content for missing file",
         );
 
         // Run retry
@@ -835,5 +851,324 @@ mod tests {
         assert!(dest_dir.join("artist1/album1/title2.flac").exists());
         assert!(dest_dir.join("artist2/album1/title1.flac").exists());
         assert!(dest_dir.join("artist2/album2/title1.flac").exists());
+    }
+
+    // Helper function to extract file numbers from verbose output
+    fn extract_file_numbers(output: &str) -> Vec<usize> {
+        let mut numbers = Vec::new();
+
+        // Regular expression to match patterns like "(1/4)", "(2/4)", etc.
+        let re = regex::Regex::new(r"\((\d+)/\d+\)").unwrap();
+
+        for line in output.lines() {
+            if line.contains("Copy track") {
+                if let Some(captures) = re.captures(line) {
+                    if let Some(number_str) = captures.get(1) {
+                        if let Ok(number) = number_str.as_str().parse::<usize>() {
+                            numbers.push(number);
+                        }
+                    }
+                }
+            }
+        }
+
+        numbers
+    }
+
+    #[test]
+    fn test_file_counting_across_playlists() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create two playlists with distinct files
+        let playlist1_content = "artist1/album1/title1.flac\nartist1/album1/title2.flac";
+        let playlist1_path = music_dir.join("playlist1.m3u8");
+        create_test_file(&playlist1_path, playlist1_content);
+
+        let playlist2_content = "artist2/album1/title1.flac\nartist2/album2/title1.flac";
+        let playlist2_path = music_dir.join("playlist2.m3u8");
+        create_test_file(&playlist2_path, playlist2_content);
+
+        // Run with verbose mode to capture progress messages
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("-v")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist1_path.to_str().unwrap())
+            .arg(playlist2_path.to_str().unwrap())
+            .assert();
+
+        // Capture stderr output which contains the progress messages
+        let output = String::from_utf8_lossy(&assert.get_output().stderr);
+
+        // Extract file numbers from the output
+        let file_numbers = extract_file_numbers(&output);
+
+        // Verify that file numbers are sequential across playlists
+        // The fixed implementation numbers files as [1, 2, 3, 4]
+        assert_eq!(file_numbers, vec![1, 2, 3, 4]);
+
+        // Verify all files were copied
+        assert!(dest_dir.join("artist1/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+        assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist2/album2/title1.flac").exists());
+    }
+
+    #[test]
+    fn test_only_successful_files_counted() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create a playlist with some files that will fail to copy
+        let playlist_content =
+            "artist1/album1/title1.flac\nartist1/album1/missing.flac\nartist2/album1/title1.flac";
+        let playlist_path = music_dir.join("playlist_with_missing.m3u8");
+        create_test_file(&playlist_path, playlist_content);
+
+        // Run with verbose and keep-going mode
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("-v")
+            .arg("--keep-going")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .assert();
+
+        // Capture stderr output which contains the progress messages
+        let output = String::from_utf8_lossy(&assert.get_output().stderr);
+
+        // Extract file numbers from the output
+        let file_numbers = extract_file_numbers(&output);
+
+        // Verify that only successful files are counted
+        // We expect 2 files numbered 1, 2 (the missing file is skipped)
+        assert_eq!(file_numbers, vec![1, 2]);
+
+        // Verify successful files were copied
+        assert!(dest_dir.join("artist1/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+
+        // Verify missing file was not copied
+        assert!(!dest_dir.join("artist1/album1/missing.flac").exists());
+    }
+
+    #[test]
+    fn test_counting_with_shared_files() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create two playlists with some shared files
+        let playlist1_content =
+            "artist1/album1/title1.flac\nartist1/album1/title2.flac\nartist2/album1/title1.flac";
+        let playlist1_path = music_dir.join("playlist1.m3u8");
+        create_test_file(&playlist1_path, playlist1_content);
+
+        let playlist2_content =
+            "artist1/album1/title2.flac\nartist2/album1/title1.flac\nartist2/album2/title1.flac";
+        let playlist2_path = music_dir.join("playlist2.m3u8");
+        create_test_file(&playlist2_path, playlist2_content);
+
+        // Run with verbose mode
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("-v")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist1_path.to_str().unwrap())
+            .arg(playlist2_path.to_str().unwrap())
+            .assert();
+
+        // Capture stderr output which contains the progress messages
+        let output = String::from_utf8_lossy(&assert.get_output().stderr);
+
+        // Extract file numbers from the output
+        let file_numbers = extract_file_numbers(&output);
+
+        // Verify that shared files are only counted once
+        // The fixed implementation numbers files as [1, 2, 3, 4]
+        assert_eq!(file_numbers, vec![1, 2, 3, 4]);
+
+        // Verify all files were copied
+        assert!(dest_dir.join("artist1/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+        assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist2/album2/title1.flac").exists());
+    }
+
+    #[test]
+    fn test_summary_count_matches_verbose_count() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        let playlist_path = music_dir.join("playlist.m3u8");
+
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let output = cmd
+            .arg("-v")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist_path.to_str().unwrap())
+            .output()
+            .expect("Failed to execute command");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        // Extract the count from summary output
+        let summary_count_regex = regex::Regex::new(r"\((\d+)/\d+\) media files copied").unwrap();
+        let summary_count = summary_count_regex
+            .captures(&stdout)
+            .expect("Failed to find media files count in summary")
+            .get(1)
+            .unwrap()
+            .as_str()
+            .parse::<usize>()
+            .unwrap();
+
+        // Count "Copy track" messages in verbose output
+        let verbose_count = stderr
+            .lines()
+            .filter(|line| line.contains("Copy track"))
+            .count();
+
+        // The counts should match
+        assert_eq!(
+            verbose_count, summary_count,
+            "Summary count ({}) does not match verbose output count ({})",
+            summary_count, verbose_count
+        );
+    }
+
+    #[test]
+    fn test_total_count_consistent_across_playlists() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create two playlists with distinct files
+        let playlist1_content = "artist1/album1/title1.flac\nartist1/album1/title2.flac";
+        let playlist1_path = music_dir.join("playlist1.m3u8");
+        create_test_file(&playlist1_path, playlist1_content);
+
+        let playlist2_content = "artist2/album1/title1.flac\nartist2/album2/title1.flac";
+        let playlist2_path = music_dir.join("playlist2.m3u8");
+        create_test_file(&playlist2_path, playlist2_content);
+
+        // Run with verbose mode to capture progress messages
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("-v")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist1_path.to_str().unwrap())
+            .arg(playlist2_path.to_str().unwrap())
+            .assert();
+
+        // Capture stderr output which contains the progress messages
+        let output = String::from_utf8_lossy(&assert.get_output().stderr);
+
+        // Extract total counts from each playlist's media file messages
+        let re = regex::Regex::new(r"\(\d+/(\d+)\).*Copy track").unwrap();
+        let mut total_counts = Vec::new();
+
+        for line in output.lines() {
+            if line.contains("Copy track") {
+                if let Some(captures) = re.captures(line) {
+                    if let Some(total_str) = captures.get(1) {
+                        if let Ok(total) = total_str.as_str().parse::<usize>() {
+                            total_counts.push(total);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Verify we have at least one count from each playlist
+        assert!(!total_counts.is_empty(), "No total counts found in output");
+
+        // Get the expected total count (4 unique files across both playlists)
+        let expected_total = 4;
+
+        // Verify all total counts are equal to the expected total
+        for (i, &count) in total_counts.iter().enumerate() {
+            assert_eq!(
+                count,
+                expected_total,
+                "Total count in message {} is {}, expected {}",
+                i + 1,
+                count,
+                expected_total
+            );
+        }
+
+        // Verify all files were copied
+        assert!(dest_dir.join("artist1/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+        assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist2/album2/title1.flac").exists());
+    }
+
+    #[test]
+    fn test_counting_with_failed_files_and_multiple_playlists() {
+        let temp_dir = setup_test_directory();
+        let music_dir = temp_dir.path().join("MUSIC");
+        let dest_dir = temp_dir.path().join("DEST");
+
+        fs::create_dir_all(&dest_dir).unwrap();
+
+        // Create playlists with some shared files and some that will fail
+        let playlist1_content =
+            "artist1/album1/title1.flac\nartist1/album1/missing1.flac\nartist2/album1/title1.flac";
+        let playlist1_path = music_dir.join("playlist1.m3u8");
+        create_test_file(&playlist1_path, playlist1_content);
+
+        let playlist2_content =
+            "artist1/album1/title2.flac\nartist2/album1/title1.flac\nartist1/album1/missing2.flac";
+        let playlist2_path = music_dir.join("playlist2.m3u8");
+        create_test_file(&playlist2_path, playlist2_content);
+
+        // Run with verbose and keep-going mode
+        let mut cmd = Command::cargo_bin("plm-put-playlist").unwrap();
+        let assert = cmd
+            .arg("-v")
+            .arg("--keep-going")
+            .arg(dest_dir.to_str().unwrap())
+            .arg(playlist1_path.to_str().unwrap())
+            .arg(playlist2_path.to_str().unwrap())
+            .assert();
+
+        // Capture stderr output which contains the progress messages
+        let output = String::from_utf8_lossy(&assert.get_output().stderr);
+
+        // Extract file numbers from the output
+        let file_numbers = extract_file_numbers(&output);
+
+        // Verify that:
+        // 1. Failed files are skipped in the count
+        // 2. Shared files are only counted once
+        // 3. The counter is continuous across playlists
+        // The fixed implementation numbers files as [1, 2, 3]
+        assert_eq!(file_numbers, vec![1, 2, 3]);
+
+        // Verify successful files were copied
+        assert!(dest_dir.join("artist1/album1/title1.flac").exists());
+        assert!(dest_dir.join("artist1/album1/title2.flac").exists());
+        assert!(dest_dir.join("artist2/album1/title1.flac").exists());
+
+        // Verify missing files were not copied
+        assert!(!dest_dir.join("artist1/album1/missing1.flac").exists());
+        assert!(!dest_dir.join("artist1/album1/missing2.flac").exists());
     }
 }

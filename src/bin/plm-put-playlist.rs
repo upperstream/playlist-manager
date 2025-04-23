@@ -164,12 +164,12 @@ fn copy_single_media_file(
     src_basedir: &str,
     dest_basedir: &str,
     file: &str,
-    verbose: bool,
+    _verbose: bool,
     copy_lyrics: bool,
     keep_going: bool,
     error_tracker: &mut Option<&mut ErrorTracker>,
-    current_file_num: Option<usize>,
-    total_files: Option<usize>,
+    _current_file_num: Option<usize>,
+    _total_files: Option<usize>,
 ) -> Result<(usize, bool)> {
     let mut n_files = 0;
     let file_path = Path::new(file);
@@ -202,15 +202,7 @@ fn copy_single_media_file(
     let src_file = Path::new(src_basedir).join(file);
     let dest_file = dest_dir.join(file_part);
 
-    print_message(
-        verbose,
-        "Copy track \"{}\" to \"{}\"",
-        &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()],
-        current_file_num,
-        total_files,
-        Some("media"),
-        copy_lyrics,
-    );
+    // We'll print the message in copy_media_files after successful copy
 
     match fs::copy(&src_file, &dest_file) {
         Ok(_) => {
@@ -243,18 +235,7 @@ fn copy_single_media_file(
             if lyrics_path.exists() {
                 let dest_lyrics_file = dest_dir.join(&lyrics_filename);
 
-                print_message(
-                    verbose,
-                    "Copy lyrics \"{}\" to \"{}\"",
-                    &[
-                        &lyrics_path.to_string_lossy(),
-                        &dest_lyrics_file.to_string_lossy(),
-                    ],
-                    current_file_num,
-                    total_files,
-                    Some("lyrics"),
-                    copy_lyrics,
-                );
+                // We'll print the message in copy_media_files after successful copy
 
                 match fs::copy(&lyrics_path, &dest_lyrics_file) {
                     Ok(_) => {
@@ -292,13 +273,15 @@ fn copy_media_files(
     keep_going: bool,
     error_tracker: &mut Option<&mut ErrorTracker>,
     total_files: Option<usize>,
+    current_success_count: &mut usize,
 ) -> Result<(usize, Vec<String>)> {
     let mut n_files = 0;
     let mut successful_files = Vec::new();
     let files_vec: Vec<String> = files.collect();
 
-    for (i, file) in files_vec.into_iter().enumerate() {
-        let current_file_num = total_files.map(|_| i + 1);
+    for file in files_vec.into_iter() {
+        // We'll update current_file_num only if the copy is successful
+        let _current_file_num: Option<usize> = None;
         match copy_single_media_file(
             src_basedir,
             dest_basedir,
@@ -307,12 +290,60 @@ fn copy_media_files(
             copy_lyrics,
             keep_going,
             error_tracker,
-            current_file_num,
+            None, // We'll print the message after successful copy
             total_files,
         ) {
             Ok((copied, success)) => {
                 n_files += copied;
                 if success {
+                    // Increment the global success counter
+                    *current_success_count += 1;
+
+                    // Print message with updated counter after successful copy
+                    let src_file = Path::new(src_basedir).join(&file);
+                    let file_path = Path::new(&file);
+                    let dir_part = file_path.parent().unwrap_or(Path::new(""));
+                    let file_part = file_path.file_name().unwrap_or_default();
+                    let dest_file = Path::new(dest_basedir).join(dir_part).join(file_part);
+
+                    print_message(
+                        verbose,
+                        "Copy track \"{}\" to \"{}\"",
+                        &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()],
+                        Some(*current_success_count),
+                        total_files,
+                        Some("media"),
+                        copy_lyrics,
+                    );
+
+                    // If lyrics option is enabled, print message for lyrics file too
+                    if copy_lyrics {
+                        if let Some(stem) = file_path.file_stem() {
+                            let lyrics_filename = format!("{}.lrc", stem.to_string_lossy());
+                            let lyrics_path =
+                                Path::new(src_basedir).join(dir_part).join(&lyrics_filename);
+
+                            if lyrics_path.exists() {
+                                let dest_lyrics_file = Path::new(dest_basedir)
+                                    .join(dir_part)
+                                    .join(&lyrics_filename);
+
+                                print_message(
+                                    verbose,
+                                    "Copy lyrics \"{}\" to \"{}\"",
+                                    &[
+                                        &lyrics_path.to_string_lossy(),
+                                        &dest_lyrics_file.to_string_lossy(),
+                                    ],
+                                    Some(*current_success_count),
+                                    total_files,
+                                    Some("lyrics"),
+                                    copy_lyrics,
+                                );
+                            }
+                        }
+                    }
+
                     successful_files.push(file);
                 }
             }
@@ -588,6 +619,7 @@ fn retry_playlist(
     current_playlist_num: Option<usize>,
     total_playlists: Option<usize>,
     total_media_files: Option<usize>,
+    successful_media_files: &mut usize,
 ) -> Result<(bool, usize)> {
     print_message(
         verbose,
@@ -630,6 +662,7 @@ fn retry_playlist(
                 keep_going,
                 error_tracker,
                 total_media_files,
+                successful_media_files,
             ) {
                 Ok((_, successful_files)) => {
                     let successful_count = successful_files.len();
@@ -675,6 +708,7 @@ fn retry_media_file(
     copied_files: &mut HashSet<(String, String)>,
     _current_file_num: Option<usize>,
     total_media_files: Option<usize>,
+    successful_media_files: &mut usize,
 ) -> Result<usize> {
     print_message(
         verbose,
@@ -710,6 +744,7 @@ fn retry_media_file(
         keep_going,
         error_tracker,
         total_media_files,
+        successful_media_files,
     ) {
         Ok((_, successful_files)) => {
             let successful_count = successful_files.len();
@@ -777,6 +812,7 @@ fn retry_operations(
             Some(i + 1),
             Some(total_playlists),
             Some(total_media_files),
+            &mut successful_media_files,
         ) {
             Ok((success, count)) => {
                 if success {
@@ -801,6 +837,7 @@ fn retry_operations(
             &mut copied_files,
             Some(i + 1),
             Some(total_media_files),
+            &mut successful_media_files,
         ) {
             Ok(count) => {
                 successful_media_files += count;
@@ -828,10 +865,35 @@ fn process_normal_operations(
 ) -> Result<(usize, usize, usize, usize)> {
     let total_playlists = playlists.len();
     let mut successful_playlists = 0;
-    let mut total_media_files = 0;
     let mut successful_media_files = 0;
     let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
     let mut copied_files: HashSet<(String, String)> = HashSet::new();
+
+    // First, calculate the total number of unique media files across all playlists
+    let mut all_media_files: HashSet<(String, String)> = HashSet::new();
+
+    // Process each playlist to extract media files and build the global map
+    for playlist in playlists.iter() {
+        match extract_media_files(playlist) {
+            Ok((src_basedir, files)) => {
+                for file in files {
+                    all_media_files.insert((src_basedir.clone(), file));
+                }
+            }
+            Err(e) => {
+                eprintln!(
+                    "Error extracting media files from playlist {}: {}",
+                    playlist, e
+                );
+                if !keep_going {
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    // Total number of unique media files across all playlists
+    let total_media_files = all_media_files.len();
 
     // Process each playlist and copy its media files one-by-one
     for (i, playlist) in playlists.iter().enumerate() {
@@ -858,9 +920,6 @@ fn process_normal_operations(
                 let files_to_copy =
                     filter_already_copied_files(&src_basedir, &files, &copied_files);
 
-                // Count total media files (excluding lyrics)
-                total_media_files += files_to_copy.len();
-
                 print_message(
                     verbose,
                     "Copying {} media files for playlist \"{}\"",
@@ -881,35 +940,11 @@ fn process_normal_operations(
                     keep_going,
                     error_tracker_ref,
                     Some(total_media_files),
+                    &mut successful_media_files,
                 ) {
                     Ok((_copied, successful_files)) => {
-                        // Count successful media files (excluding lyrics)
-                        // The copy_media_files function returns the total number of files copied,
-                        // including lyrics files if the lyrics option is enabled.
-                        // We need to count only the media files, not the lyrics files.
-                        let media_files_copied = if lyrics {
-                            // If lyrics are enabled, we need to count how many lyrics files were copied
-                            let lyrics_files_copied = successful_files
-                                .iter()
-                                .filter(|file| {
-                                    let file_path = Path::new(file);
-                                    if let Some(stem) = file_path.file_stem() {
-                                        let dir_part = file_path.parent().unwrap_or(Path::new(""));
-                                        let lyrics_path = Path::new(&src_basedir)
-                                            .join(dir_part)
-                                            .join(format!("{}.lrc", stem.to_string_lossy()));
-                                        lyrics_path.exists()
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .count();
-                            successful_files.len() - lyrics_files_copied
-                        } else {
-                            successful_files.len()
-                        };
-
-                        successful_media_files += media_files_copied;
+                        // The successful_media_files counter is already updated in copy_media_files
+                        // No need to increment it again here
                         successful_playlists += 1;
 
                         // Update copied_files set with only the successfully copied files

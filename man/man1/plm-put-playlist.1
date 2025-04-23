@@ -75,6 +75,14 @@ For lyrics files: "(a-L/b) Copy lyrics {} to {}"
 Where 'a' is the current file number, 'b' is the total number of files,
 '-M' indicates a media file, and '-L' indicates a lyrics file.
 .Pp
+The n-th file to copy is the n-th file of all files to copy across all
+playlist files, and only successfully copied files are counted in the
+sequence.  For example, if playlist A has 10 media files and playlist B
+has 15 media files, with 5 media files shared between them, the total
+number of media files to be copied is 20 (10+15-5).  The file counter
+will progress from 1 to 20 across both playlists, skipping any files
+that fail to copy.
+.Pp
 When
 .Fl l
 or
@@ -108,19 +116,22 @@ option, unless used with
 .Fl r
 or
 .Fl -retry
-option. If used without the keep-going option and not with the retry option, the command will print an error
-message to stderr and exit with status code 255. When used correctly, the command
-will write the list of playlist files and media files that failed to copy to the
-specified file. Each line in the error file is prefixed with either "P " for
-failed playlists or "M " for failed media files, and the entries are listed in
-the order they failed. If the file cannot be created, the command will print an
-error message to stderr and exit with status code 2.
+option. If used without the keep-going option and not with the retry
+option, the command will print an error message to stderr and exit with
+status code 255.  When used correctly, the command will write the list
+of playlist files and media files that failed to copy to the specified
+file.  Each line in the error file is prefixed with either "P " for
+failed playlists or "M " for failed media files, and the entries are
+listed in the order they failed. If the file cannot be created, the
+command will print an error message to stderr and exit with status code
+2.
 .Pp
 When
 .Fl r
 or
 .Fl -retry
-option is given, the command will read the specified error file (produced by a previous run with
+option is given, the command will read the specified error file
+(produced by a previous run with
 .Fl e
 or
 .Fl -error-files
@@ -131,20 +142,24 @@ The operation is done as follows:
 .It
 Read one line from the error file.
 .It
-If the line is prefixed by "P", it is a playlist to copy. Copy the playlist file.
+If the line is prefixed by "P", it is a playlist to copy.  Copy the
+playlist file.
 .It
-If the line is prefixed by "M", it is a media file to copy. Copy the media file and read the next line.
+If the line is prefixed by "M", it is a media file to copy.  Copy the
+media file and read the next line.
 .El
 .Pp
 The
 .Fl e
 option can be given with
 .Fl r
-option at the same time to create a new error file for the retry operation. If the same file is specified by
+option at the same time to create a new error file for the retry
+operation.  If the same file is specified by
 .Fl r
 and
 .Fl e
-options, the command will print an error message to stderr and exit with status code 255.
+options, the command will print an error message to stderr and exit
+with status code 255.
 .Pp
 The third synopsys displays the help screen and quits.
 .Pp
@@ -154,9 +169,11 @@ The fourth synopsys displays the version information and quits.
 .It 0
 Command successfully exits.
 .It 1
-Command fails during execution (e.g., file copy errors) when --keep-going is not specified.
+Command fails during execution (e.g., file copy errors) when
+--keep-going is not specified.
 .It 2
-Command fails to create the error log file specified with --error-files.
+Command fails to create the error log file specified with
+--error-files.
 .It 255
 Command fails with invalid command line arguments.
 .El
@@ -207,7 +224,8 @@ To log failed files to an error log:
 To retry failed operations from an error log:
 .Dl plm put-playlist --retry errors.log /mnt/sdcard/MUSIC
 .Pp
-To retry failed operations and create a new error log for operations that still fail:
+To retry failed operations and create a new error log for operations
+that still fail:
 .Dl plm put-playlist --retry errors.log --keep-going --error-files new-errors.log /mnt/sdcard/MUSIC
 .Pp
 and results in the following files on the SD card:

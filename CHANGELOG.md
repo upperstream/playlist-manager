@@ -32,6 +32,11 @@
       `tests/integration_put_playlist_tests.rs`
     * Rename `tests/delete_playlist_tests.rs` to
       `tests/integration_delete_playlist_tests.rs`
+* Fixed:
+  * Fix file counting in `plm-put-playlist` to ensure the n-th file to
+    copy is the n-th file of all files to copy across all playlist
+    files, and only successfully copied files are counted in the
+    sequence
 
 ## [v0.2.0][] - 2025-04-14
 

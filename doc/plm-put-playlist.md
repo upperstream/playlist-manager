@@ -250,6 +250,14 @@ Where:
 - The `-M` suffix indicates a media file
 - The `-L` suffix indicates a lyrics file
 
+The n-th file to copy is the n-th file of all files to copy across all
+playlist files, and only successfully copied files are counted in the
+sequence.  For example, if playlist A has 10 media files and playlist B
+has 15 media files, with 5 media files shared between them, the total
+number of media files to be copied is 20 (10+15-5).  The file counter
+will progress from 1 to 20 across both playlists, skipping any files
+that fail to copy.
+
 ### Continue Despite Errors
 
 Copy playlists and media files, continuing despite errors:
