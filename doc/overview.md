@@ -57,6 +57,12 @@ graph TD
    - Accepts `-H/--help` flags to display help information
    - Implemented directly in the main `plm` script
 
+5. **Shared Library Components**
+   - `playlist_scanner`: Provides functionality for parsing playlist
+     files
+   - Abstracts common operations for reuse across commands
+   - Implements efficient streaming processing of playlist files
+
 ## Common Components
 
 Several components are shared across the different tools:
@@ -64,12 +70,17 @@ Several components are shared across the different tools:
 ### Playlist Processing
 
 All tools need to process playlist files to extract the list of media
-files referenced in them.  This involves:
+files referenced in them.  This processing is centralized in the
+`playlist_scanner` module and involves:
 
 1. Reading the playlist file line by line
 2. Filtering out comments and empty lines
 3. Normalising file paths (replacing backslashes with forward slashes)
 4. Extracting the base directory and relative paths
+
+The `playlist_scanner` module uses a streaming approach with iterators
+to efficiently process playlist files of any size with minimal memory
+usage.
 
 ### File System Operations
 

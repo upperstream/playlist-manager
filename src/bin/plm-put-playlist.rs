@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser};
+use playlist_manager::playlist_scanner;
 use thiserror::Error;
 
 // Import MediaFileInfo from the shared module
@@ -379,40 +380,7 @@ fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
 
     let file =
         File::open(playlist).with_context(|| format!("Failed to open playlist: {}", playlist))?;
-    let reader = BufReader::new(file);
-
-    let media_files = reader
-        .lines()
-        .filter_map(Result::ok)
-        .map(|line| {
-            // Remove BOM if present
-            let line = if line.starts_with('\u{feff}') {
-                line[3..].to_string()
-            } else {
-                line
-            };
-
-            // Remove carriage return if present
-            let line = if line.ends_with('\r') {
-                line[..line.len() - 1].to_string()
-            } else {
-                line
-            };
-
-            line
-        })
-        .filter(|line| {
-            // Skip comments and empty lines
-            if line.starts_with('#') || line.is_empty() {
-                return false;
-            }
-            true
-        })
-        .map(|line| {
-            // Replace backslashes with forward slashes
-            line.replace('\\', "/")
-        })
-        .collect();
+    let media_files: Vec<String> = playlist_scanner::read_playlist(file).collect();
 
     Ok((src_basedir, media_files))
 }

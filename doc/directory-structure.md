@@ -26,6 +26,8 @@ playlist-manager/
 │       ├── plm-put-playlist.1
 │       └── plm-delete-playlist.1
 ├── src/
+│   ├── lib.rs
+│   ├── playlist_scanner.rs
 │   └── bin/
 │       ├── plm-put-playlist.rs
 │       ├── plm_put_playlist_retry/
@@ -80,16 +82,17 @@ page format:
 
 The `src/` directory contains the source code for the project:
 
-- `bin/plm-put-playlist.rs` - Implementation of the put-playlist
+- `bin/plm-put-playlist.rs` - Implementation of the put-playlist command
+- `bin/plm-delete-playlist.rs` - Implementation of the delete-playlist
   command
 - `bin/plm_put_playlist_retry/mod.rs` - Module containing retry-related
   functionality for the put-playlist command
-- `bin/plm-delete-playlist.rs` - Implementation of the delete-playlist
-  command
+- `lib.rs` - The library crate entry point that exposes shared modules
+- `playlist_scanner.rs` - Shared module for parsing playlist files
 
 The Playlist Manager is implemented in Rust, with each subcommand as a
-separate executable. The code is organized into modules for better
-maintainability.
+separate executable.  The project also includes a library crate for
+sharing common functionality between the binaries.
 
 ### tests/
 

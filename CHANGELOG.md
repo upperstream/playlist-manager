@@ -28,6 +28,7 @@
     related parameters, reducing the number of arguments in
     `retry_playlist()` from 10 to 6 and in `retry_media_file()` from 7
     to 6 for better maintainability
+  * Refactor by introducing `playlist_scanner` module
 
 ## [v0.3.0][] - 2025-04-24
 

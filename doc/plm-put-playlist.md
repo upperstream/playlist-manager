@@ -367,6 +367,19 @@ The implementation is organised into several key components:
 4. `retry_media_file()`: Retries copying a single media file from the
    error file
 
+#### Playlist Scanner Module
+
+The command uses a dedicated `playlist_scanner` module for processing
+playlist files. This module:
+
+1. Provides a streaming iterator interface for efficient memory usage
+2. Handles common playlist file formatting issues:
+   - Removes Byte Order Mark (BOM) if present
+   - Removes carriage returns
+   - Filters out comments and empty lines
+   - Normalizes path separators (backslashes to forward slashes)
+3. Is shared with other commands to ensure consistent playlist parsing
+
 ## Optimisation
 
 The command optimises the copying process by:
