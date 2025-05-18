@@ -857,8 +857,8 @@ mod tests {
     fn extract_file_numbers(output: &str) -> Vec<usize> {
         let mut numbers = Vec::new();
 
-        // Regular expression to match patterns like "(1/4)", "(2/4)", etc.
-        let re = regex::Regex::new(r"\((\d+)/\d+\)").unwrap();
+        // Regular expression to match patterns like "(1-M/4)", "(2-M/4)", etc.
+        let re = regex::Regex::new(r"\((\d+)(?:-[ML])?/\d+\)").unwrap();
 
         for line in output.lines() {
             if line.contains("Copy track") {
@@ -1080,7 +1080,7 @@ mod tests {
         let output = String::from_utf8_lossy(&assert.get_output().stderr);
 
         // Extract total counts from each playlist's media file messages
-        let re = regex::Regex::new(r"\(\d+/(\d+)\).*Copy track").unwrap();
+        let re = regex::Regex::new(r"\(\d+(?:-[ML])?/(\d+)\).*Copy track").unwrap();
         let mut total_counts = Vec::new();
 
         for line in output.lines() {

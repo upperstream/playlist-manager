@@ -236,12 +236,6 @@ When the `-v` option is given, the command will display messages about
 the copying process:
 
 - For playlist files: `({}/{}) Copy playlist {} to {}`
-- For media files: `({}/{}) Copy track {} to {}`
-
-When both `-v` and `-l` options are given, the command will display
-messages with additional type indicators:
-
-- For playlist files: `({}/{}) Copy playlist {} to {}`
 - For media files: `({}-M/{}) Copy track {} to {}`
 - For lyrics files: `({}-L/{}) Copy lyrics {} to {}`
 

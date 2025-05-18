@@ -127,15 +127,14 @@ fn print_message(
     current_count: Option<usize>,
     total_count: Option<usize>,
     file_type: Option<&str>,
-    copy_lyrics: bool,
 ) {
     if verbose {
         let message = if let (Some(current), Some(total)) = (current_count, total_count) {
             // Format with counters
             let counter_prefix = if let Some(ftype) = file_type {
-                if ftype == "lyrics" && copy_lyrics {
+                if ftype == "lyrics" {
                     format!("({}-L/{})", current, total)
-                } else if ftype == "media" && copy_lyrics {
+                } else if ftype == "media" {
                     format!("({}-M/{})", current, total)
                 } else {
                     format!("({}/{})", current, total)
@@ -313,7 +312,6 @@ fn copy_media_files(
                         Some(*current_success_count),
                         total_files,
                         Some("media"),
-                        copy_lyrics,
                     );
 
                     // If lyrics option is enabled, print message for lyrics file too
@@ -338,7 +336,6 @@ fn copy_media_files(
                                     Some(*current_success_count),
                                     total_files,
                                     Some("lyrics"),
-                                    copy_lyrics,
                                 );
                             }
                         }
@@ -456,7 +453,6 @@ fn copy_playlist_file(
             current_playlist_num,
             total_playlists,
             None,
-            false,
         );
 
         fs::copy(playlist, &dest_playlist).with_context(|| {
@@ -483,7 +479,6 @@ fn process_playlist(
         None,
         None,
         None,
-        false,
     );
 
     // Copy the playlist file
@@ -628,7 +623,6 @@ fn retry_playlist(
         None,
         None,
         None,
-        false,
     );
 
     match process_playlist(
@@ -650,7 +644,6 @@ fn retry_playlist(
                 None,
                 None,
                 None,
-                lyrics,
             );
 
             match copy_media_files(
@@ -717,7 +710,6 @@ fn retry_media_file(
         None,
         None,
         None,
-        false,
     );
 
     // Check if this file has already been copied
@@ -729,7 +721,6 @@ fn retry_media_file(
             None,
             None,
             None,
-            false,
         );
         return Ok(1);
     }
@@ -786,7 +777,6 @@ fn retry_operations(
         None,
         None,
         None,
-        false,
     );
 
     let (playlists, media_files) = parse_error_file(retry_file)?;
@@ -904,7 +894,6 @@ fn process_normal_operations(
             None,
             None,
             None,
-            false,
         );
 
         match process_playlist(
@@ -927,7 +916,6 @@ fn process_normal_operations(
                     None,
                     None,
                     None,
-                    lyrics,
                 );
 
                 // Copy files for this playlist

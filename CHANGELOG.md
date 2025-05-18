@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased][]
+
+* Changed:
+  * Modify `print_message()` in `plm-put-playlist.rs` to use the format
+    of "({}-L/{})" for lyrics or "({}-M/{})" for media regardless of
+    `copy_lyrics` value, removing the `copy_lyrics` argument from this
+    function
+
 ## [v0.3.0][] - 2025-04-24
 
 * Added:
@@ -154,3 +162,5 @@
   https://github.com/upperstream/playlist-manager/compare/v0.0.1...v0.0.2
 [v0.0.1]:
   https://github.com/upperstream/playlist-manager/releases/tag/v0.0.1
+[Unreleased]:
+  https://github.com/upperstream/playlist-manager/compare/v0.3.0...HEAD
