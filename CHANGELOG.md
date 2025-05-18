@@ -7,6 +7,10 @@
     of "({}-L/{})" for lyrics or "({}-M/{})" for media regardless of
     `copy_lyrics` value, removing the `copy_lyrics` argument from this
     function
+  * Introduce `CommandOptions` struct in `plm-put-playlist.rs` to hold
+    command line flags (verbose, copy_lyrics, keep_going) and use it as
+    a parameter in functions instead of passing these three boolean
+    values separately
 
 ## [v0.3.0][] - 2025-04-24
 

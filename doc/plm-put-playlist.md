@@ -307,7 +307,17 @@ plm put-playlist --retry errors.log --keep-going --error-files new-errors.log /m
 
 ## Code Structure
 
-The implementation is organised into several key functions:
+The implementation is organised into several key components:
+
+### Data Structures
+
+1. `CommandOptions`: A struct that holds command line options (verbose,
+   copy_lyrics, keep_going)
+2. `ErrorTracker`: A struct to track failed files during operation
+3. `FailureType`: An enum to represent different types of failures
+   (playlist or media file)
+
+### Key Functions
 
 1. `main()`: Entry point that parses command-line arguments and
    orchestrates the process
@@ -316,13 +326,21 @@ The implementation is organised into several key functions:
 3. `copy_playlist_file()`: Copies a playlist file to the destination
 4. `extract_media_files()`: Extracts media files from a playlist
 5. `copy_media_files()`: Copies media files from source to destination
-6. `filter_already_copied_files()`: Filters out files that have already
+6. `copy_single_media_file()`: Copies a single media file and its lyrics
+   if requested
+7. `filter_already_copied_files()`: Filters out files that have already
    been copied
-7. `parse_error_file()`: Parses an error file and extracts failed
+8. `parse_error_file()`: Parses an error file and extracts failed
    playlists and media files
-8. `retry_operations()`: Retries failed operations from an error file
-9. `abs_dir()`: Gets the absolute path of a directory
-10. `print_message()`: Prints a message if verbose mode is enabled
+9. `retry_operations()`: Retries failed operations from an error file
+10. `retry_playlist()`: Retries processing a single playlist from the
+    error file
+11. `retry_media_file()`: Retries copying a single media file from the
+    error file
+12. `process_normal_operations()`: Processes normal operations (non-
+    retry mode)
+13. `abs_dir()`: Gets the absolute path of a directory
+14. `print_message()`: Prints a message if verbose mode is enabled
 
 ## Optimisation
 
