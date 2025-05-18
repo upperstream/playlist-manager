@@ -28,6 +28,8 @@ playlist-manager/
 ├── src/
 │   └── bin/
 │       ├── plm-put-playlist.rs
+│       ├── plm_put_playlist_retry/
+│       │   └── mod.rs
 │       └── plm-delete-playlist.rs
 ├── tests/
 │   ├── integration_test_common.rs
@@ -80,19 +82,25 @@ The `src/` directory contains the source code for the project:
 
 - `bin/plm-put-playlist.rs` - Implementation of the put-playlist
   command
+- `bin/plm_put_playlist_retry/mod.rs` - Module containing retry-related
+  functionality for the put-playlist command
 - `bin/plm-delete-playlist.rs` - Implementation of the delete-playlist
   command
 
 The Playlist Manager is implemented in Rust, with each subcommand as a
-separate executable.
+separate executable. The code is organized into modules for better
+maintainability.
 
 ### tests/
 
 The `tests/` directory contains integration tests for the project:
 
-- `integration_test_common.rs` - Common utility functions and test setup code
-- `integration_put_playlist_tests.rs` - Tests for the put-playlist command
-- `integration_delete_playlist_tests.rs` - Tests for the delete-playlist command
+- `integration_test_common.rs` - Common utility functions and test setup
+  code
+- `integration_put_playlist_tests.rs` - Tests for the put-playlist
+  command
+- `integration_delete_playlist_tests.rs` - Tests for the delete-playlist
+  command
 
 ### work/
 
@@ -126,7 +134,8 @@ The `work/` directory is used for temporary work files.  It contains a
 
 ## Build and Execution Flow
 
-1. Source code in `src/` is compiled using Cargo (Rust's package manager)
+1. Source code in `src/` is compiled using Cargo (Rust's package
+   manager)
 2. Compiled executables are placed in the `target/` directory during
    development
 3. When installed, the main script from `bin/` is copied to a system

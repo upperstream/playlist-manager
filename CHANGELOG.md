@@ -11,6 +11,9 @@
     command line flags (verbose, copy_lyrics, keep_going) and use it as
     a parameter in functions instead of passing these three boolean
     values separately
+  * Refactor `plm-put-playlist.rs` to move retry-related functions to a
+    separate module `plm_put_playlist_retry` for better code
+    organization and maintainability
 
 ## [v0.3.0][] - 2025-04-24
 
@@ -150,6 +153,8 @@
     * Copy playlist files and associated media files to device
       (direct access to MTP device is not supported)
 
+[Unreleased]:
+  https://github.com/upperstream/playlist-manager/compare/v0.3.0...HEAD
 [v0.3.0]:
   https://github.com/upperstream/playlist-manager/compare/v0.2.1...v0.3.0
 [v0.2.1]:
@@ -166,5 +171,3 @@
   https://github.com/upperstream/playlist-manager/compare/v0.0.1...v0.0.2
 [v0.0.1]:
   https://github.com/upperstream/playlist-manager/releases/tag/v0.0.1
-[Unreleased]:
-  https://github.com/upperstream/playlist-manager/compare/v0.3.0...HEAD
