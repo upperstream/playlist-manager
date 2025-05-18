@@ -14,6 +14,20 @@
   * Refactor `plm-put-playlist.rs` to move retry-related functions to a
     separate module `plm_put_playlist_retry` for better code
     organization and maintainability
+  * Refactor `copy_single_media_file()` and `copy_media_files()` in
+    `plm-put-playlist.rs` to use the shared `MediaFileInfo` struct
+    instead of separate `src_basedir` and `file` parameters, reducing
+    the number of arguments and improving maintainability
+  * Refactor `retry_media_file()` in `plm_put_playlist_retry` module to
+    use a `MediaFileInfo` struct instead of separate `src_basedir` and
+    `file` parameters, reducing the number of arguments from 9 to 7 for
+    better maintainability
+  * Refactor `retry_playlist()` and `retry_media_file()` in
+    `plm_put_playlist_retry` module to use context structs
+    (`RetryContext`, `MediaContext`, and `ProgressContext`) to group
+    related parameters, reducing the number of arguments in
+    `retry_playlist()` from 10 to 6 and in `retry_media_file()` from 7
+    to 6 for better maintainability
 
 ## [v0.3.0][] - 2025-04-24
 

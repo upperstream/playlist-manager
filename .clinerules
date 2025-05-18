@@ -6,8 +6,8 @@
   your hand early, so that I can break the complex task down into steps
   before spending tokens.
 * Consider splitting source files when a production source file reaches
-  980 lines or when a test source file reaches 480 lines.  Avoid each
-  reaches 1000 lines and 500 lines respectively.
+  600 lines or when a test source file reaches 480 lines.  Avoid each
+  reaches 800 lines and 500 lines respectively.
 
 ## Execution environment
 

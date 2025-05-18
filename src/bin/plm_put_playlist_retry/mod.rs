@@ -3,7 +3,29 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::{Context as AnyhowContext, Result};
+
+// Import MediaFileInfo from the shared module
+use playlist_manager::media_file_info::MediaFileInfo;
+
+/// Struct to hold destination directory information
+pub struct RetryContext {
+    pub dest_dir: String,
+}
+
+/// Struct to hold media files map and copied files
+pub struct MediaContext {
+    pub media_files_map: Vec<(String, HashSet<String>)>,
+    pub copied_files: HashSet<(String, String)>,
+}
+
+/// Struct to hold progress tracking information
+pub struct ProgressContext {
+    pub current_playlist_num: Option<usize>,
+    pub total_playlists: Option<usize>,
+    pub total_media_files: Option<usize>,
+    pub successful_media_files: usize,
+}
 
 /// Parse an error file and extract failed playlists and media files
 pub fn parse_error_file(path: &str) -> Result<(Vec<String>, Vec<(String, String)>)> {
@@ -81,15 +103,11 @@ pub fn parse_error_file(path: &str) -> Result<(Vec<String>, Vec<(String, String)
 /// Retry processing a single playlist from the error file
 pub fn retry_playlist(
     playlist: &str,
-    dest_dir: &str,
+    retry_context: &RetryContext,
     options: &super::CommandOptions,
     error_tracker: &mut Option<&mut super::ErrorTracker>,
-    media_files_map: &mut Vec<(String, HashSet<String>)>,
-    copied_files: &mut HashSet<(String, String)>,
-    current_playlist_num: Option<usize>,
-    total_playlists: Option<usize>,
-    total_media_files: Option<usize>,
-    successful_media_files: &mut usize,
+    media_context: &mut MediaContext,
+    progress_context: &mut ProgressContext,
 ) -> Result<(bool, usize)> {
     super::print_message(
         options.verbose,
@@ -102,16 +120,19 @@ pub fn retry_playlist(
 
     match super::process_playlist(
         playlist,
-        dest_dir,
+        &retry_context.dest_dir,
         options.verbose,
-        media_files_map,
-        current_playlist_num,
-        total_playlists,
+        &mut media_context.media_files_map,
+        progress_context.current_playlist_num,
+        progress_context.total_playlists,
     ) {
         Ok((src_basedir, files)) => {
             // Copy media files for this playlist
-            let files_to_copy =
-                super::filter_already_copied_files(&src_basedir, &files, copied_files);
+            let files_to_copy = super::filter_already_copied_files(
+                &src_basedir,
+                &files,
+                &media_context.copied_files,
+            );
 
             super::print_message(
                 options.verbose,
@@ -123,19 +144,21 @@ pub fn retry_playlist(
             );
             match super::copy_media_files(
                 &src_basedir,
-                dest_dir,
+                &retry_context.dest_dir,
                 files_to_copy.into_iter(),
                 &options,
                 error_tracker,
-                total_media_files,
-                successful_media_files,
+                progress_context.total_media_files,
+                &mut progress_context.successful_media_files,
             ) {
                 Ok((_, successful_files)) => {
                     let successful_count = successful_files.len();
 
                     // Update copied_files set
                     for file in successful_files {
-                        copied_files.insert((src_basedir.clone(), file));
+                        media_context
+                            .copied_files
+                            .insert((src_basedir.clone(), file));
                     }
 
                     Ok((true, successful_count))
@@ -163,32 +186,39 @@ pub fn retry_playlist(
 }
 
 /// Retry copying a single media file from the error file
+///
+/// This function has been refactored to use:
+/// 1. A MediaFileInfo struct instead of separate src_basedir and file parameters
+/// 2. Grouped parameters for better organization using context structs
+/// This reduces the number of arguments from the original 9 to 5.
 pub fn retry_media_file(
-    src_basedir: &str,
-    file: &str,
-    dest_dir: &str,
+    media_file: &MediaFileInfo,
+    retry_context: &RetryContext,
     options: &super::CommandOptions,
     error_tracker: &mut Option<&mut super::ErrorTracker>,
-    copied_files: &mut HashSet<(String, String)>,
-    _current_file_num: Option<usize>,
-    total_media_files: Option<usize>,
-    successful_media_files: &mut usize,
+    media_context: &mut MediaContext,
+    progress_context: &mut ProgressContext,
 ) -> Result<usize> {
+    let file_full_path = Path::new(&media_file.src_basedir).join(&media_file.file);
+
     super::print_message(
         options.verbose,
         "Retrying media file \"{}\"",
-        &[&Path::new(src_basedir).join(file).to_string_lossy()],
+        &[&file_full_path.to_string_lossy()],
         None,
         None,
         None,
     );
 
     // Check if this file has already been copied
-    if copied_files.contains(&(src_basedir.to_string(), file.to_string())) {
+    if media_context
+        .copied_files
+        .contains(&(media_file.src_basedir.clone(), media_file.file.clone()))
+    {
         super::print_message(
             options.verbose,
             "Skipping already copied file \"{}\"",
-            &[&Path::new(src_basedir).join(file).to_string_lossy()],
+            &[&file_full_path.to_string_lossy()],
             None,
             None,
             None,
@@ -198,20 +228,22 @@ pub fn retry_media_file(
 
     // Copy the file
     match super::copy_media_files(
-        src_basedir,
-        dest_dir,
-        std::iter::once(file.to_string()),
-        &options,
+        &media_file.src_basedir,
+        &retry_context.dest_dir,
+        std::iter::once(media_file.file.clone()),
+        options,
         error_tracker,
-        total_media_files,
-        successful_media_files,
+        progress_context.total_media_files,
+        &mut progress_context.successful_media_files,
     ) {
         Ok((_, successful_files)) => {
             let successful_count = successful_files.len();
 
             // Update copied_files set
             for file in successful_files {
-                copied_files.insert((src_basedir.to_string(), file));
+                media_context
+                    .copied_files
+                    .insert((media_file.src_basedir.clone(), file));
             }
 
             Ok(successful_count)
@@ -219,7 +251,7 @@ pub fn retry_media_file(
         Err(e) => {
             eprintln!(
                 "Error copying media file {}: {}",
-                Path::new(src_basedir).join(file).display(),
+                file_full_path.display(),
                 e
             );
             if !options.keep_going {
@@ -252,22 +284,35 @@ pub fn retry_operations(
     let total_media_files = media_files.len();
     let mut successful_playlists = 0;
     let mut successful_media_files = 0;
-    let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
-    let mut copied_files: HashSet<(String, String)> = HashSet::new();
+
+    // Create context structs
+    let retry_context = RetryContext {
+        dest_dir: dest_dir.to_string(),
+    };
+
+    let mut media_context = MediaContext {
+        media_files_map: Vec::new(),
+        copied_files: HashSet::new(),
+    };
+
+    let mut progress_context = ProgressContext {
+        current_playlist_num: None,
+        total_playlists: Some(total_playlists),
+        total_media_files: Some(total_media_files),
+        successful_media_files: 0,
+    };
 
     // Process playlists first
     for (i, playlist) in playlists.iter().enumerate() {
+        progress_context.current_playlist_num = Some(i + 1);
+
         match retry_playlist(
             playlist,
-            dest_dir,
-            &options,
+            &retry_context,
+            options,
             error_tracker,
-            &mut media_files_map,
-            &mut copied_files,
-            Some(i + 1),
-            Some(total_playlists),
-            Some(total_media_files),
-            &mut successful_media_files,
+            &mut media_context,
+            &mut progress_context,
         ) {
             Ok((success, count)) => {
                 if success {
@@ -280,17 +325,19 @@ pub fn retry_operations(
     }
 
     // Process media files
-    for (i, (src_basedir, file)) in media_files.iter().enumerate() {
+    for (_i, (src_basedir, file)) in media_files.iter().enumerate() {
+        let media_file = MediaFileInfo {
+            src_basedir: src_basedir.clone(),
+            file: file.clone(),
+        };
+
         match retry_media_file(
-            src_basedir,
-            file,
-            dest_dir,
-            &options,
+            &media_file,
+            &retry_context,
+            options,
             error_tracker,
-            &mut copied_files,
-            Some(i + 1),
-            Some(total_media_files),
-            &mut successful_media_files,
+            &mut media_context,
+            &mut progress_context,
         ) {
             Ok(count) => {
                 successful_media_files += count;

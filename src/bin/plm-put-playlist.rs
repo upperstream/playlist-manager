@@ -8,6 +8,9 @@ use anyhow::{Context, Result};
 use clap::{ArgAction, Parser};
 use thiserror::Error;
 
+// Import MediaFileInfo from the shared module
+use playlist_manager::media_file_info::MediaFileInfo;
+
 mod plm_put_playlist_retry;
 
 /// Struct to hold command line options
@@ -169,16 +172,15 @@ fn print_message(
 /// Copy a single media file from source to destination
 /// Returns a tuple of (number of files copied, whether the media file was successfully copied)
 fn copy_single_media_file(
-    src_basedir: &str,
+    media_file: &MediaFileInfo,
     dest_basedir: &str,
-    file: &str,
     options: &CommandOptions,
     error_tracker: &mut Option<&mut ErrorTracker>,
     _current_file_num: Option<usize>,
     _total_files: Option<usize>,
 ) -> Result<(usize, bool)> {
     let mut n_files = 0;
-    let file_path = Path::new(file);
+    let file_path = Path::new(&media_file.file);
     let dir_part = file_path.parent().unwrap_or(Path::new(""));
     let file_part = file_path.file_name().unwrap_or_default();
 
@@ -195,7 +197,10 @@ fn copy_single_media_file(
                 if options.keep_going {
                     eprintln!("Error: {}", err);
                     if let Some(tracker) = error_tracker {
-                        tracker.add_failed_media_file(src_basedir.to_string(), file.to_string());
+                        tracker.add_failed_media_file(
+                            media_file.src_basedir.clone(),
+                            media_file.file.clone(),
+                        );
                     }
                     return Ok((0, false));
                 } else {
@@ -205,7 +210,7 @@ fn copy_single_media_file(
         }
     }
 
-    let src_file = Path::new(src_basedir).join(file);
+    let src_file = Path::new(&media_file.src_basedir).join(&media_file.file);
     let dest_file = dest_dir.join(file_part);
 
     // We'll print the message in copy_media_files after successful copy
@@ -223,7 +228,10 @@ fn copy_single_media_file(
             if options.keep_going {
                 eprintln!("Error: {}", err);
                 if let Some(tracker) = error_tracker {
-                    tracker.add_failed_media_file(src_basedir.to_string(), file.to_string());
+                    tracker.add_failed_media_file(
+                        media_file.src_basedir.clone(),
+                        media_file.file.clone(),
+                    );
                 }
                 return Ok((0, false));
             } else {
@@ -236,7 +244,9 @@ fn copy_single_media_file(
     if options.copy_lyrics {
         if let Some(stem) = file_path.file_stem() {
             let lyrics_filename = format!("{}.lrc", stem.to_string_lossy());
-            let lyrics_path = Path::new(src_basedir).join(dir_part).join(&lyrics_filename);
+            let lyrics_path = Path::new(&media_file.src_basedir)
+                .join(dir_part)
+                .join(&lyrics_filename);
 
             if lyrics_path.exists() {
                 let dest_lyrics_file = dest_dir.join(&lyrics_filename);
@@ -284,12 +294,16 @@ fn copy_media_files(
     let files_vec: Vec<String> = files.collect();
 
     for file in files_vec.into_iter() {
+        // Create a MediaFileInfo for this file
+        let media_file = MediaFileInfo {
+            src_basedir: src_basedir.to_string(),
+            file: file.clone(),
+        };
+
         // We'll update current_file_num only if the copy is successful
-        let _current_file_num: Option<usize> = None;
         match copy_single_media_file(
-            src_basedir,
+            &media_file,
             dest_basedir,
-            &file,
             options,
             error_tracker,
             None, // We'll print the message after successful copy
@@ -302,8 +316,8 @@ fn copy_media_files(
                     *current_success_count += 1;
 
                     // Print message with updated counter after successful copy
-                    let src_file = Path::new(src_basedir).join(&file);
-                    let file_path = Path::new(&file);
+                    let src_file = Path::new(&media_file.src_basedir).join(&media_file.file);
+                    let file_path = Path::new(&media_file.file);
                     let dir_part = file_path.parent().unwrap_or(Path::new(""));
                     let file_part = file_path.file_name().unwrap_or_default();
                     let dest_file = Path::new(dest_basedir).join(dir_part).join(file_part);
@@ -321,8 +335,9 @@ fn copy_media_files(
                     if options.copy_lyrics {
                         if let Some(stem) = file_path.file_stem() {
                             let lyrics_filename = format!("{}.lrc", stem.to_string_lossy());
-                            let lyrics_path =
-                                Path::new(src_basedir).join(dir_part).join(&lyrics_filename);
+                            let lyrics_path = Path::new(&media_file.src_basedir)
+                                .join(dir_part)
+                                .join(&lyrics_filename);
 
                             if lyrics_path.exists() {
                                 let dest_lyrics_file = Path::new(dest_basedir)

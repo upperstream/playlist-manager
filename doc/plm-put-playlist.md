@@ -322,6 +322,20 @@ The implementation is organised into several key components:
 2. `ErrorTracker`: A struct to track failed files during operation
 3. `FailureType`: An enum to represent different types of failures
    (playlist or media file)
+4. `MediaFileInfo`: A shared struct that holds information about a media
+   file (src_basedir and file), used by both the main module and the
+   retry module to reduce the number of arguments in functions that
+   handle media files
+5. `RetryContext`: A struct in the retry module that holds destination
+   directory information, used to reduce the number of arguments in the
+   retry functions
+6. `MediaContext`: A struct in the retry module that holds media files
+   map and copied files information, used to reduce the number of
+   arguments in the retry functions
+7. `ProgressContext`: A struct in the retry module that holds progress
+   tracking information (current playlist number, total playlists, total
+   media files, successful media files), used to reduce the number of
+   arguments in the retry functions
 
 ### Key Functions
 
