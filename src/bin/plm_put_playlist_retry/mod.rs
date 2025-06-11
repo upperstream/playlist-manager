@@ -7,7 +7,6 @@ use anyhow::{Context as AnyhowContext, Result};
 
 // Import MediaFileInfo from the shared module
 use playlist_manager::media_file_info::MediaFileInfo;
-use playlist_manager::logger::Logger;
 
 /// Struct to hold destination directory information
 pub struct RetryContext {
@@ -106,17 +105,15 @@ pub fn retry_playlist(
     playlist: &str,
     retry_context: &RetryContext,
     options: &super::CommandOptions,
-    logger: &Logger,
     error_tracker: &mut Option<&mut super::ErrorTracker>,
     media_context: &mut MediaContext,
     progress_context: &mut ProgressContext,
 ) -> Result<(bool, usize)> {
-    logger.log_formatted("Retrying playlist \"{}\"", &[playlist]);
+    playlist_manager::logger::get_logger().log_formatted("Retrying playlist \"{}\"", &[playlist]);
 
     match super::process_playlist(
         playlist,
         &retry_context.dest_dir,
-        logger,
         &mut media_context.media_files_map,
         progress_context.current_playlist_num,
         progress_context.total_playlists,
@@ -129,7 +126,7 @@ pub fn retry_playlist(
                 &media_context.copied_files,
             );
 
-            logger.log_formatted(
+            playlist_manager::logger::get_logger().log_formatted(
                 "Copying {} media files for playlist \"{}\"",
                 &[&files_to_copy.len().to_string(), playlist],
             );
@@ -138,7 +135,6 @@ pub fn retry_playlist(
                 &retry_context.dest_dir,
                 files_to_copy.into_iter(),
                 &options,
-                logger,
                 error_tracker,
                 progress_context.total_media_files,
                 &mut progress_context.successful_media_files,
@@ -187,14 +183,13 @@ pub fn retry_media_file(
     media_file: &MediaFileInfo,
     retry_context: &RetryContext,
     options: &super::CommandOptions,
-    logger: &Logger,
     error_tracker: &mut Option<&mut super::ErrorTracker>,
     media_context: &mut MediaContext,
     progress_context: &mut ProgressContext,
 ) -> Result<usize> {
     let file_full_path = Path::new(&media_file.src_basedir).join(&media_file.file);
 
-    logger.log_formatted(
+    playlist_manager::logger::get_logger().log_formatted(
         "Retrying media file \"{}\"",
         &[&file_full_path.to_string_lossy()],
     );
@@ -204,7 +199,7 @@ pub fn retry_media_file(
         .copied_files
         .contains(&(media_file.src_basedir.clone(), media_file.file.clone()))
     {
-        logger.log_formatted(
+        playlist_manager::logger::get_logger().log_formatted(
             "Skipping already copied file \"{}\"",
             &[&file_full_path.to_string_lossy()],
         );
@@ -217,7 +212,6 @@ pub fn retry_media_file(
         &retry_context.dest_dir,
         std::iter::once(media_file.file.clone()),
         options,
-        logger,
         error_tracker,
         progress_context.total_media_files,
         &mut progress_context.successful_media_files,
@@ -254,10 +248,12 @@ pub fn retry_operations(
     dest_dir: &str,
     options: &super::CommandOptions,
     error_tracker: &mut Option<&mut super::ErrorTracker>,
+    verbose: bool,
 ) -> Result<(usize, usize, usize, usize)> {
-    let logger = Logger::new(options.verbose);
+    // Initialize the static logger for retry operations
+    playlist_manager::logger::init_logger(verbose);
 
-    logger.log_formatted(
+    playlist_manager::logger::get_logger().log_formatted(
         "Retrying operations from error file \"{}\"",
         &[retry_file],
     );
@@ -294,7 +290,6 @@ pub fn retry_operations(
             playlist,
             &retry_context,
             options,
-            &logger,
             error_tracker,
             &mut media_context,
             &mut progress_context,
@@ -320,7 +315,6 @@ pub fn retry_operations(
             &media_file,
             &retry_context,
             options,
-            &logger,
             error_tracker,
             &mut media_context,
             &mut progress_context,

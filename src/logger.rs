@@ -1,8 +1,11 @@
 //! Logging utilities for playlist manager operations.
 
+use std::sync::OnceLock;
+
 /// A logger that handles verbose output with optional counters and formatting.
+#[derive(Debug)]
 pub struct Logger {
-    pub verbose: bool,
+    verbose: bool,
 }
 
 impl Logger {
@@ -61,4 +64,17 @@ impl Logger {
 
         eprintln!("{}", message);
     }
+}
+
+/// Static logger instance - will be initialized once in process_normal_operations
+static LOGGER: OnceLock<Logger> = OnceLock::new();
+
+/// Initialize the static logger (called once from process_normal_operations)
+pub fn init_logger(verbose: bool) {
+    LOGGER.set(Logger::new(verbose)).ok(); // Ignore error if already set
+}
+
+/// Get the static logger instance
+pub fn get_logger() -> &'static Logger {
+    LOGGER.get().expect("Logger not initialized - call init_logger first")
 }

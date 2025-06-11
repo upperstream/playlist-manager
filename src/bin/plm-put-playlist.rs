@@ -7,7 +7,6 @@ use std::process;
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser};
 use playlist_manager::playlist_scanner;
-use playlist_manager::logger::Logger;
 use thiserror::Error;
 
 // Import MediaFileInfo from the shared module
@@ -18,7 +17,6 @@ mod plm_put_playlist_retry;
 /// Struct to hold command line options
 #[derive(Debug)]
 struct CommandOptions {
-    verbose: bool,
     copy_lyrics: bool,
     keep_going: bool,
 }
@@ -253,7 +251,6 @@ fn copy_media_files(
     dest_basedir: &str,
     files: impl Iterator<Item = String>,
     options: &CommandOptions,
-    logger: &Logger,
     error_tracker: &mut Option<&mut ErrorTracker>,
     total_files: Option<usize>,
     current_success_count: &mut usize,
@@ -291,7 +288,7 @@ fn copy_media_files(
                     let file_part = file_path.file_name().unwrap_or_default();
                     let dest_file = Path::new(dest_basedir).join(dir_part).join(file_part);
 
-                    logger.log_with_counters(
+                    playlist_manager::logger::get_logger().log_with_counters(
                         "Copy track \"{}\" to \"{}\"",
                         &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()],
                         Some(*current_success_count),
@@ -312,7 +309,7 @@ fn copy_media_files(
                                     .join(dir_part)
                                     .join(&lyrics_filename);
 
-                                logger.log_with_counters(
+                                playlist_manager::logger::get_logger().log_with_counters(
                                     "Copy lyrics \"{}\" to \"{}\"",
                                     &[
                                         &lyrics_path.to_string_lossy(),
@@ -355,7 +352,6 @@ fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
 fn copy_playlist_file(
     playlist: &str,
     dest_basedir: &str,
-    logger: &Logger,
     current_playlist_num: Option<usize>,
     total_playlists: Option<usize>,
 ) -> Result<()> {
@@ -398,7 +394,7 @@ fn copy_playlist_file(
         fs::write(&dest_playlist, modified_content)
             .with_context(|| format!("Failed to write playlist: {}", dest_playlist.display()))?;
     } else {
-        logger.log_with_counters(
+        playlist_manager::logger::get_logger().log_with_counters(
             "Copy playlist \"{}\" to \"{}\"",
             &[playlist, &format!("{}/", dest_basedir)],
             current_playlist_num,
@@ -418,18 +414,16 @@ fn copy_playlist_file(
 fn process_playlist(
     playlist: &str,
     dest_basedir: &str,
-    logger: &Logger,
     media_files_map: &mut Vec<(String, HashSet<String>)>,
     current_playlist_num: Option<usize>,
     total_playlists: Option<usize>,
 ) -> Result<(String, Vec<String>)> {
-    logger.log_formatted("Processing playlist \"{}\"", &[playlist]);
+    playlist_manager::logger::get_logger().log_formatted("Processing playlist \"{}\"", &[playlist]);
 
     // Copy the playlist file
     copy_playlist_file(
         playlist,
         dest_basedir,
-        logger,
         current_playlist_num,
         total_playlists,
     )?;
@@ -506,7 +500,6 @@ fn prepare_environment(cli: &Cli) -> Result<(String, CommandOptions, Option<Erro
 
     // Create CommandOptions struct from CLI arguments
     let options = CommandOptions {
-        verbose: cli.verbose,
         copy_lyrics: cli.lyrics,
         keep_going: cli.keep_going,
     };
@@ -532,10 +525,11 @@ fn run_core_logic(
                 dest_dir,
                 options,
                 error_tracker_ref,
+                cli.verbose,
             )?
         } else {
             // Normal operation mode
-            process_normal_operations(&cli.playlists, dest_dir, options, error_tracker_ref)?
+            process_normal_operations(&cli.playlists, dest_dir, options, error_tracker_ref, cli.verbose)?
         };
 
     // Print summary
@@ -598,25 +592,21 @@ fn process_single_playlist(
     total_playlists: usize,
     dest_dir: &str,
     options: &CommandOptions,
-    logger: &Logger,
+    media_files_map: &mut Vec<(String, HashSet<String>)>,
     copied_files: &mut HashSet<(String, String)>,
     error_tracker_ref: &mut Option<&mut ErrorTracker>,
     total_media_files: usize,
     successful_media_files: &mut usize,
 ) -> Result<bool> {
-    logger.log_formatted(
+    playlist_manager::logger::get_logger().log_formatted(
         "Put playlist \"{}\" into \"{}\"",
         &[playlist, dest_dir],
     );
 
-    // We need a temporary media_files_map for process_playlist, but we don't use it afterwards
-    let mut temp_media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
-
     match process_playlist(
         playlist,
         dest_dir,
-        logger,
-        &mut temp_media_files_map,
+        media_files_map,
         Some(index + 1),
         Some(total_playlists),
     ) {
@@ -625,7 +615,7 @@ fn process_single_playlist(
             let files_to_copy =
                 filter_already_copied_files(&src_basedir, &files, copied_files);
 
-            logger.log_formatted(
+            playlist_manager::logger::get_logger().log_formatted(
                 "Copying {} media files for playlist \"{}\"",
                 &[&files_to_copy.len().to_string(), playlist],
             );
@@ -636,7 +626,6 @@ fn process_single_playlist(
                 dest_dir,
                 files_to_copy.into_iter(),
                 options,
-                logger,
                 error_tracker_ref,
                 Some(total_media_files),
                 successful_media_files,
@@ -676,11 +665,15 @@ fn process_normal_operations(
     dest_dir: &str,
     options: &CommandOptions,
     error_tracker_ref: &mut Option<&mut ErrorTracker>,
+    verbose: bool,
 ) -> Result<(usize, usize, usize, usize)> {
-    let logger = Logger::new(options.verbose);
+    // Initialize the static logger for this compilation unit
+    playlist_manager::logger::init_logger(verbose);
+
     let total_playlists = playlists.len();
     let mut successful_playlists = 0;
     let mut successful_media_files = 0;
+    let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
     let mut copied_files: HashSet<(String, String)> = HashSet::new();
 
     // First, calculate the total number of unique media files across all playlists
@@ -695,7 +688,7 @@ fn process_normal_operations(
             total_playlists,
             dest_dir,
             options,
-            &logger,
+            &mut media_files_map,
             &mut copied_files,
             error_tracker_ref,
             total_media_files,
@@ -742,16 +735,16 @@ fn main() -> Result<()> {
         }
     };
 
-    // Create a mutable reference to the ErrorTracker for core logic
+    // 3. Create a mutable reference to the ErrorTracker for core logic
     let mut error_tracker_ref: Option<&mut ErrorTracker> = error_tracker_owner.as_mut();
 
-    // 3. Run Core Logic
+    // 4. Run Core Logic
     if let Err(e) = run_core_logic(&cli, &dest_dir, &options, &mut error_tracker_ref) {
         eprintln!("Error during operations: {}", e);
         process::exit(1); // Operational error
     }
 
-    // 4. Perform Cleanup
+    // 5. Perform Cleanup
     if let Err(e) = perform_cleanup(&cli, error_tracker_owner) {
         eprintln!("Error during cleanup: {}", e);
         process::exit(2); // Error writing log file
@@ -868,7 +861,6 @@ mod tests {
         assert!(PathBuf::from(&dest_dir).exists());
 
         // Check CommandOptions are set correctly
-        assert_eq!(options.verbose, true);
         assert_eq!(options.copy_lyrics, true);
         assert_eq!(options.keep_going, true);
 
@@ -1026,12 +1018,10 @@ mod tests {
         );
 
         let options = CommandOptions {
-            verbose: cli.verbose,
             copy_lyrics: cli.lyrics,
             keep_going: cli.keep_going,
         };
 
-        assert_eq!(options.verbose, true);
         assert_eq!(options.copy_lyrics, false);
         assert_eq!(options.keep_going, true);
     }
@@ -1039,7 +1029,6 @@ mod tests {
     #[test]
     fn test_collect_all_media_files_empty_playlists() -> Result<()> {
         let options = CommandOptions {
-            verbose: false,
             copy_lyrics: false,
             keep_going: false,
         };
@@ -1053,7 +1042,6 @@ mod tests {
     #[test]
     fn test_collect_all_media_files_with_keep_going() -> Result<()> {
         let options = CommandOptions {
-            verbose: false,
             copy_lyrics: false,
             keep_going: true,
         };
@@ -1069,7 +1057,6 @@ mod tests {
     #[test]
     fn test_collect_all_media_files_without_keep_going() {
         let options = CommandOptions {
-            verbose: false,
             copy_lyrics: false,
             keep_going: false,
         };
@@ -1091,7 +1078,6 @@ mod tests {
         fs::write(&playlist2_path, "song2.mp3\nsong3.mp3\n")?;
 
         let options = CommandOptions {
-            verbose: false,
             copy_lyrics: false,
             keep_going: false,
         };
