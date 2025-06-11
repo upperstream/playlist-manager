@@ -88,6 +88,7 @@ The `src/` directory contains the source code for the project:
 - `bin/plm_put_playlist_retry/mod.rs` - Module containing retry-related
   functionality for the put-playlist command
 - `lib.rs` - The library crate entry point that exposes shared modules
+- `file_utils.rs` - Shared module for generic file operations
 - `playlist_scanner.rs` - Shared module for parsing playlist files
 - `logger.rs` - Shared module for handling verbose output and logging
 - `media_file_info.rs` - Shared module defining the MediaFileInfo struct

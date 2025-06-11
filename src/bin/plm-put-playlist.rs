@@ -6,6 +6,7 @@ use std::process;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser};
+use playlist_manager::file_utils::generic_copy_file;
 use playlist_manager::playlist_scanner;
 use thiserror::Error;
 
@@ -150,60 +151,29 @@ fn copy_single_media_file(
     let dir_part = file_path.parent().unwrap_or(Path::new(""));
     let file_part = file_path.file_name().unwrap_or_default();
 
-    let dest_dir = Path::new(dest_basedir).join(dir_part);
-
-    if !dest_dir.exists() {
-        match fs::create_dir_all(&dest_dir) {
-            Ok(_) => {}
-            Err(e) => {
-                let err = anyhow::Error::new(e).context(format!(
-                    "Failed to create directory: {}",
-                    dest_dir.display()
-                ));
-                if options.keep_going {
-                    eprintln!("Error: {}", err);
-                    if let Some(tracker) = error_tracker {
-                        tracker.add_failed_media_file(
-                            media_file.src_basedir.clone(),
-                            media_file.file.clone(),
-                        );
-                    }
-                    return Ok((0, false));
-                } else {
-                    return Err(err);
-                }
-            }
-        }
-    }
-
     let src_file = Path::new(&media_file.src_basedir).join(&media_file.file);
-    let dest_file = dest_dir.join(file_part);
+    let dest_file = Path::new(dest_basedir).join(dir_part).join(file_part);
 
-    // We'll print the message in copy_media_files after successful copy
-
-    match fs::copy(&src_file, &dest_file) {
-        Ok(_) => {
-            n_files += 1;
-        }
-        Err(e) => {
-            let err = anyhow::Error::new(e).context(format!(
-                "Failed to copy {} to {}",
-                src_file.display(),
-                dest_file.display()
-            ));
-            if options.keep_going {
-                eprintln!("Error: {}", err);
-                if let Some(tracker) = error_tracker {
-                    tracker.add_failed_media_file(
-                        media_file.src_basedir.clone(),
-                        media_file.file.clone(),
-                    );
-                }
-                return Ok((0, false));
-            } else {
-                return Err(err);
+    // Copy the main media file
+    let media_success = generic_copy_file(
+        &src_file,
+        &dest_file,
+        |err| {
+            eprintln!("Error: {}", err);
+            if let Some(tracker) = error_tracker {
+                tracker.add_failed_media_file(
+                    media_file.src_basedir.clone(),
+                    media_file.file.clone(),
+                );
             }
-        }
+            options.keep_going
+        },
+    )?;
+
+    if media_success {
+        n_files += 1;
+    } else {
+        return Ok((0, false));
     }
 
     // If lyrics option is enabled, try to copy the corresponding .lrc file
@@ -215,27 +185,21 @@ fn copy_single_media_file(
                 .join(&lyrics_filename);
 
             if lyrics_path.exists() {
-                let dest_lyrics_file = dest_dir.join(&lyrics_filename);
+                let dest_lyrics_file = Path::new(dest_basedir).join(dir_part).join(&lyrics_filename);
 
-                // We'll print the message in copy_media_files after successful copy
+                // Copy lyrics file (don't track lyrics files in error tracker)
+                let lyrics_success = generic_copy_file(
+                    &lyrics_path,
+                    &dest_lyrics_file,
+                    |err| {
+                        eprintln!("Error: {}", err);
+                        // Don't track lyrics files in error tracker
+                        options.keep_going
+                    },
+                )?;
 
-                match fs::copy(&lyrics_path, &dest_lyrics_file) {
-                    Ok(_) => {
-                        n_files += 1;
-                    }
-                    Err(e) => {
-                        let err = anyhow::Error::new(e).context(format!(
-                            "Failed to copy lyrics {} to {}",
-                            lyrics_path.display(),
-                            dest_lyrics_file.display()
-                        ));
-                        if options.keep_going {
-                            eprintln!("Error: {}", err);
-                            // We don't track lyrics files in the error tracker
-                        } else {
-                            return Err(err);
-                        }
-                    }
+                if lyrics_success {
+                    n_files += 1;
                 }
             }
         }
