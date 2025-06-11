@@ -3,6 +3,11 @@
 ## [Unreleased][]
 
 * Changed:
+  * Refactor logging and verbose output functionality in
+    `plm-put-playlist.rs` to improve maintainability by introducing a
+    dedicated `Logger` module that centralizes all verbose output logic,
+    eliminating code duplication and making logging behavior easier to
+    maintain and test
   * Modify `print_message()` in `plm-put-playlist.rs` to use the format
     of "({}-L/{})" for lyrics or "({}-M/{})" for media regardless of
     `copy_lyrics` value, removing the `copy_lyrics` argument from this

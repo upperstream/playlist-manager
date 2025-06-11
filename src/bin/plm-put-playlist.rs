@@ -7,6 +7,7 @@ use std::process;
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser};
 use playlist_manager::playlist_scanner;
+use playlist_manager::logger::Logger;
 use thiserror::Error;
 
 // Import MediaFileInfo from the shared module
@@ -135,43 +136,6 @@ fn abs_dir(path: &str) -> Result<String, AppError> {
     Ok(abs_path.to_string_lossy().to_string())
 }
 
-/// Print a message if verbose mode is enabled
-fn print_message(
-    verbose: bool,
-    fmt: &str,
-    args: &[&str],
-    current_count: Option<usize>,
-    total_count: Option<usize>,
-    file_type: Option<&str>,
-) {
-    if verbose {
-        let message = if let (Some(current), Some(total)) = (current_count, total_count) {
-            // Format with counters
-            let counter_prefix = if let Some(ftype) = file_type {
-                if ftype == "lyrics" {
-                    format!("({}-L/{})", current, total)
-                } else if ftype == "media" {
-                    format!("({}-M/{})", current, total)
-                } else {
-                    format!("({}/{})", current, total)
-                }
-            } else {
-                format!("({}/{})", current, total)
-            };
-
-            let formatted_message = args
-                .iter()
-                .fold(fmt.to_string(), |acc, arg| acc.replacen("{}", arg, 1));
-            format!("{} {}", counter_prefix, formatted_message)
-        } else {
-            // Original format without counters
-            args.iter()
-                .fold(fmt.to_string(), |acc, arg| acc.replacen("{}", arg, 1))
-        };
-
-        eprintln!("{}", message);
-    }
-}
 
 /// Copy a single media file from source to destination
 /// Returns a tuple of (number of files copied, whether the media file was successfully copied)
@@ -289,6 +253,7 @@ fn copy_media_files(
     dest_basedir: &str,
     files: impl Iterator<Item = String>,
     options: &CommandOptions,
+    logger: &Logger,
     error_tracker: &mut Option<&mut ErrorTracker>,
     total_files: Option<usize>,
     current_success_count: &mut usize,
@@ -326,8 +291,7 @@ fn copy_media_files(
                     let file_part = file_path.file_name().unwrap_or_default();
                     let dest_file = Path::new(dest_basedir).join(dir_part).join(file_part);
 
-                    print_message(
-                        options.verbose,
+                    logger.log_with_counters(
                         "Copy track \"{}\" to \"{}\"",
                         &[&src_file.to_string_lossy(), &dest_file.to_string_lossy()],
                         Some(*current_success_count),
@@ -348,8 +312,7 @@ fn copy_media_files(
                                     .join(dir_part)
                                     .join(&lyrics_filename);
 
-                                print_message(
-                                    options.verbose,
+                                logger.log_with_counters(
                                     "Copy lyrics \"{}\" to \"{}\"",
                                     &[
                                         &lyrics_path.to_string_lossy(),
@@ -392,7 +355,7 @@ fn extract_media_files(playlist: &str) -> Result<(String, Vec<String>)> {
 fn copy_playlist_file(
     playlist: &str,
     dest_basedir: &str,
-    verbose: bool,
+    logger: &Logger,
     current_playlist_num: Option<usize>,
     total_playlists: Option<usize>,
 ) -> Result<()> {
@@ -435,8 +398,7 @@ fn copy_playlist_file(
         fs::write(&dest_playlist, modified_content)
             .with_context(|| format!("Failed to write playlist: {}", dest_playlist.display()))?;
     } else {
-        print_message(
-            verbose,
+        logger.log_with_counters(
             "Copy playlist \"{}\" to \"{}\"",
             &[playlist, &format!("{}/", dest_basedir)],
             current_playlist_num,
@@ -456,25 +418,18 @@ fn copy_playlist_file(
 fn process_playlist(
     playlist: &str,
     dest_basedir: &str,
-    verbose: bool,
+    logger: &Logger,
     media_files_map: &mut Vec<(String, HashSet<String>)>,
     current_playlist_num: Option<usize>,
     total_playlists: Option<usize>,
 ) -> Result<(String, Vec<String>)> {
-    print_message(
-        verbose,
-        "Processing playlist \"{}\"",
-        &[playlist],
-        None,
-        None,
-        None,
-    );
+    logger.log_formatted("Processing playlist \"{}\"", &[playlist]);
 
     // Copy the playlist file
     copy_playlist_file(
         playlist,
         dest_basedir,
-        verbose,
+        logger,
         current_playlist_num,
         total_playlists,
     )?;
@@ -617,6 +572,7 @@ fn process_normal_operations(
     options: &CommandOptions,
     error_tracker_ref: &mut Option<&mut ErrorTracker>,
 ) -> Result<(usize, usize, usize, usize)> {
+    let logger = Logger::new(options.verbose);
     let total_playlists = playlists.len();
     let mut successful_playlists = 0;
     let mut successful_media_files = 0;
@@ -651,19 +607,15 @@ fn process_normal_operations(
 
     // Process each playlist and copy its media files one-by-one
     for (i, playlist) in playlists.iter().enumerate() {
-        print_message(
-            options.verbose,
+        logger.log_formatted(
             "Put playlist \"{}\" into \"{}\"",
             &[playlist, dest_dir],
-            None,
-            None,
-            None,
         );
 
         match process_playlist(
             playlist,
             dest_dir,
-            options.verbose,
+            &logger,
             &mut media_files_map,
             Some(i + 1),
             Some(total_playlists),
@@ -673,13 +625,9 @@ fn process_normal_operations(
                 let files_to_copy =
                     filter_already_copied_files(&src_basedir, &files, &copied_files);
 
-                print_message(
-                    options.verbose,
+                logger.log_formatted(
                     "Copying {} media files for playlist \"{}\"",
                     &[&files_to_copy.len().to_string(), playlist],
-                    None,
-                    None,
-                    None,
                 );
 
                 // Copy files for this playlist
@@ -688,6 +636,7 @@ fn process_normal_operations(
                     dest_dir,
                     files_to_copy.into_iter(),
                     &options,
+                    &logger,
                     error_tracker_ref,
                     Some(total_media_files),
                     &mut successful_media_files,

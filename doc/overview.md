@@ -60,6 +60,8 @@ graph TD
 5. **Shared Library Components**
    - `playlist_scanner`: Provides functionality for parsing playlist
      files
+   - `logger`: Provides centralized logging and verbose output
+     functionality
    - Abstracts common operations for reuse across commands
    - Implements efficient streaming processing of playlist files
 

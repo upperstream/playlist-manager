@@ -89,6 +89,8 @@ The `src/` directory contains the source code for the project:
   functionality for the put-playlist command
 - `lib.rs` - The library crate entry point that exposes shared modules
 - `playlist_scanner.rs` - Shared module for parsing playlist files
+- `logger.rs` - Shared module for handling verbose output and logging
+- `media_file_info.rs` - Shared module defining the MediaFileInfo struct
 
 The Playlist Manager is implemented in Rust, with each subcommand as a
 separate executable.  The project also includes a library crate for

@@ -362,7 +362,6 @@ The implementation is organised into several key components:
 12. `process_normal_operations()`: Processes normal operations (non-
     retry mode)
 13. `abs_dir()`: Gets the absolute path of a directory
-14. `print_message()`: Prints a message if verbose mode is enabled
 
 #### Retry Module
 
@@ -386,6 +385,22 @@ playlist files. This module:
    - Filters out comments and empty lines
    - Normalizes path separators (backslashes to forward slashes)
 3. Is shared with other commands to ensure consistent playlist parsing
+
+#### Logger Module
+
+The command uses a dedicated `logger` module for handling verbose output
+and logging. This module:
+
+1. Provides a centralized `Logger` struct that encapsulates verbose
+   output logic
+2. Offers methods for different types of logging:
+   - `log()`: Simple message logging
+   - `log_formatted()`: Template-based formatted logging
+   - `log_with_counters()`: Advanced logging with progress counters and
+     file type formatting
+3. Eliminates code duplication by centralizing all verbose output
+   formatting
+4. Is shared with other commands to ensure consistent logging behavior
 
 ### Architecture Improvements
 
