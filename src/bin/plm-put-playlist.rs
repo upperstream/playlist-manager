@@ -565,24 +565,10 @@ fn perform_cleanup(cli: &Cli, error_tracker: Option<ErrorTracker>) -> Result<()>
     Ok(())
 }
 
-/// Process normal operations (non-retry mode)
-fn process_normal_operations(
-    playlists: &[String],
-    dest_dir: &str,
-    options: &CommandOptions,
-    error_tracker_ref: &mut Option<&mut ErrorTracker>,
-) -> Result<(usize, usize, usize, usize)> {
-    let logger = Logger::new(options.verbose);
-    let total_playlists = playlists.len();
-    let mut successful_playlists = 0;
-    let mut successful_media_files = 0;
-    let mut media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
-    let mut copied_files: HashSet<(String, String)> = HashSet::new();
-
-    // First, calculate the total number of unique media files across all playlists
+/// Collect all unique media files from the given playlists
+fn collect_all_media_files(playlists: &[String], options: &CommandOptions) -> Result<HashSet<(String, String)>> {
     let mut all_media_files: HashSet<(String, String)> = HashSet::new();
 
-    // Process each playlist to extract media files and build the global map
     for playlist in playlists.iter() {
         match extract_media_files(playlist) {
             Ok((src_basedir, files)) => {
@@ -602,72 +588,125 @@ fn process_normal_operations(
         }
     }
 
-    // Total number of unique media files across all playlists
+    Ok(all_media_files)
+}
+
+/// Process a single playlist and its associated media files
+fn process_single_playlist(
+    playlist: &str,
+    index: usize,
+    total_playlists: usize,
+    dest_dir: &str,
+    options: &CommandOptions,
+    logger: &Logger,
+    copied_files: &mut HashSet<(String, String)>,
+    error_tracker_ref: &mut Option<&mut ErrorTracker>,
+    total_media_files: usize,
+    successful_media_files: &mut usize,
+) -> Result<bool> {
+    logger.log_formatted(
+        "Put playlist \"{}\" into \"{}\"",
+        &[playlist, dest_dir],
+    );
+
+    // We need a temporary media_files_map for process_playlist, but we don't use it afterwards
+    let mut temp_media_files_map: Vec<(String, HashSet<String>)> = Vec::new();
+
+    match process_playlist(
+        playlist,
+        dest_dir,
+        logger,
+        &mut temp_media_files_map,
+        Some(index + 1),
+        Some(total_playlists),
+    ) {
+        Ok((src_basedir, files)) => {
+            // Filter out already copied files
+            let files_to_copy =
+                filter_already_copied_files(&src_basedir, &files, copied_files);
+
+            logger.log_formatted(
+                "Copying {} media files for playlist \"{}\"",
+                &[&files_to_copy.len().to_string(), playlist],
+            );
+
+            // Copy files for this playlist
+            match copy_media_files(
+                &src_basedir,
+                dest_dir,
+                files_to_copy.into_iter(),
+                options,
+                logger,
+                error_tracker_ref,
+                Some(total_media_files),
+                successful_media_files,
+            ) {
+                Ok((_copied, successful_files)) => {
+                    // Update copied_files set with only the successfully copied files
+                    for file in successful_files {
+                        copied_files.insert((src_basedir.clone(), file));
+                    }
+                    Ok(true) // Playlist processed successfully
+                }
+                Err(e) => {
+                    eprintln!("Error copying media files for playlist {}: {}", playlist, e);
+                    if !options.keep_going {
+                        process::exit(1);
+                    }
+                    Ok(false) // Playlist processing failed
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error processing playlist {}: {}", playlist, e);
+            if let Some(tracker) = error_tracker_ref {
+                tracker.add_failed_playlist(playlist.to_string());
+            }
+            if !options.keep_going {
+                process::exit(1);
+            }
+            Ok(false) // Playlist processing failed
+        }
+    }
+}
+
+/// Process normal operations (non-retry mode)
+fn process_normal_operations(
+    playlists: &[String],
+    dest_dir: &str,
+    options: &CommandOptions,
+    error_tracker_ref: &mut Option<&mut ErrorTracker>,
+) -> Result<(usize, usize, usize, usize)> {
+    let logger = Logger::new(options.verbose);
+    let total_playlists = playlists.len();
+    let mut successful_playlists = 0;
+    let mut successful_media_files = 0;
+    let mut copied_files: HashSet<(String, String)> = HashSet::new();
+
+    // First, calculate the total number of unique media files across all playlists
+    let all_media_files = collect_all_media_files(playlists, options)?;
     let total_media_files = all_media_files.len();
 
     // Process each playlist and copy its media files one-by-one
     for (i, playlist) in playlists.iter().enumerate() {
-        logger.log_formatted(
-            "Put playlist \"{}\" into \"{}\"",
-            &[playlist, dest_dir],
-        );
-
-        match process_playlist(
+        match process_single_playlist(
             playlist,
+            i,
+            total_playlists,
             dest_dir,
+            options,
             &logger,
-            &mut media_files_map,
-            Some(i + 1),
-            Some(total_playlists),
+            &mut copied_files,
+            error_tracker_ref,
+            total_media_files,
+            &mut successful_media_files,
         ) {
-            Ok((src_basedir, files)) => {
-                // Filter out already copied files
-                let files_to_copy =
-                    filter_already_copied_files(&src_basedir, &files, &copied_files);
-
-                logger.log_formatted(
-                    "Copying {} media files for playlist \"{}\"",
-                    &[&files_to_copy.len().to_string(), playlist],
-                );
-
-                // Copy files for this playlist
-                match copy_media_files(
-                    &src_basedir,
-                    dest_dir,
-                    files_to_copy.into_iter(),
-                    &options,
-                    &logger,
-                    error_tracker_ref,
-                    Some(total_media_files),
-                    &mut successful_media_files,
-                ) {
-                    Ok((_copied, successful_files)) => {
-                        // The successful_media_files counter is already updated in copy_media_files
-                        // No need to increment it again here
-                        successful_playlists += 1;
-
-                        // Update copied_files set with only the successfully copied files
-                        for file in successful_files {
-                            copied_files.insert((src_basedir.clone(), file));
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Error copying media files for playlist {}: {}", playlist, e);
-                        if !options.keep_going {
-                            process::exit(1);
-                        }
-                    }
+            Ok(success) => {
+                if success {
+                    successful_playlists += 1;
                 }
             }
-            Err(e) => {
-                eprintln!("Error processing playlist {}: {}", playlist, e);
-                if let Some(tracker) = error_tracker_ref {
-                    tracker.add_failed_playlist(playlist.to_string());
-                }
-                if !options.keep_going {
-                    process::exit(1);
-                }
-            }
+            Err(e) => return Err(e),
         }
     }
 
@@ -995,5 +1034,83 @@ mod tests {
         assert_eq!(options.verbose, true);
         assert_eq!(options.copy_lyrics, false);
         assert_eq!(options.keep_going, true);
+    }
+
+    #[test]
+    fn test_collect_all_media_files_empty_playlists() -> Result<()> {
+        let options = CommandOptions {
+            verbose: false,
+            copy_lyrics: false,
+            keep_going: false,
+        };
+
+        let result = collect_all_media_files(&[], &options)?;
+        assert!(result.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_collect_all_media_files_with_keep_going() -> Result<()> {
+        let options = CommandOptions {
+            verbose: false,
+            copy_lyrics: false,
+            keep_going: true,
+        };
+
+        // Test with non-existent playlist files - should not fail with keep_going
+        let playlists = vec!["nonexistent1.m3u".to_string(), "nonexistent2.m3u".to_string()];
+        let result = collect_all_media_files(&playlists, &options)?;
+        assert!(result.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_collect_all_media_files_without_keep_going() {
+        let options = CommandOptions {
+            verbose: false,
+            copy_lyrics: false,
+            keep_going: false,
+        };
+
+        // Test with non-existent playlist files - should fail without keep_going
+        let playlists = vec!["nonexistent.m3u".to_string()];
+        let result = collect_all_media_files(&playlists, &options);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_collect_all_media_files_deduplication() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let playlist1_path = temp_dir.path().join("playlist1.m3u");
+        let playlist2_path = temp_dir.path().join("playlist2.m3u");
+
+        // Create two playlists with overlapping media files
+        fs::write(&playlist1_path, "song1.mp3\nsong2.mp3\n")?;
+        fs::write(&playlist2_path, "song2.mp3\nsong3.mp3\n")?;
+
+        let options = CommandOptions {
+            verbose: false,
+            copy_lyrics: false,
+            keep_going: false,
+        };
+
+        let playlists = vec![
+            playlist1_path.to_string_lossy().to_string(),
+            playlist2_path.to_string_lossy().to_string(),
+        ];
+
+        let result = collect_all_media_files(&playlists, &options)?;
+
+        // Should have 3 unique files (song1.mp3, song2.mp3, song3.mp3)
+        assert_eq!(result.len(), 3);
+
+        let temp_dir_str = temp_dir.path().to_string_lossy().to_string();
+        assert!(result.contains(&(temp_dir_str.clone(), "song1.mp3".to_string())));
+        assert!(result.contains(&(temp_dir_str.clone(), "song2.mp3".to_string())));
+        assert!(result.contains(&(temp_dir_str, "song3.mp3".to_string())));
+
+        Ok(())
     }
 }
