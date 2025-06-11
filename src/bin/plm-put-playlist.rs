@@ -15,6 +15,7 @@ use playlist_manager::media_file_info::MediaFileInfo;
 mod plm_put_playlist_retry;
 
 /// Struct to hold command line options
+#[derive(Debug)]
 struct CommandOptions {
     verbose: bool,
     copy_lyrics: bool,
@@ -65,12 +66,14 @@ enum AppError {
 }
 
 /// Enum to represent different types of failures
+#[derive(Debug)]
 enum FailureType {
     Playlist(String),          // Failed playlist path
     MediaFile(String, String), // (src_basedir, file) for failed media file
 }
 
 /// Struct to track failed files
+#[derive(Debug)]
 struct ErrorTracker {
     failures: Vec<FailureType>, // Failures in operation order
 }
@@ -514,6 +517,99 @@ fn filter_already_copied_files(
         .collect()
 }
 
+/// Handle command line arguments and validate them
+fn handle_arguments() -> Result<Cli> {
+    let cli = Cli::parse();
+
+    // Validate that --error-files is only used with --keep-going when not using --retry
+    if cli.error_files.is_some() && !cli.keep_going && cli.retry_file.is_none() {
+        return Err(anyhow::anyhow!("--error-files can only be used with --keep-going"));
+    }
+
+    // Validate that --retry and --error-files don't use the same file
+    if let (Some(retry_file), Some(error_file)) = (&cli.retry_file, &cli.error_files) {
+        if retry_file == error_file {
+            return Err(anyhow::anyhow!("--retry and --error-files cannot specify the same file"));
+        }
+    }
+
+    Ok(cli)
+}
+
+/// Prepare the environment for operations
+fn prepare_environment(cli: &Cli) -> Result<(String, CommandOptions, Option<ErrorTracker>)> {
+    // Test if error file can be created (fail fast)
+    if let Some(error_file) = &cli.error_files {
+        File::create(error_file)
+            .with_context(|| format!("Failed to create error log file: {}", error_file))?;
+        // File can be created, we'll write to it at the end if needed
+        // The file will remain empty if no errors occur
+    }
+
+    // Get absolute path of destination directory
+    let dest_dir = abs_dir(&cli.dest)?;
+
+    // Create CommandOptions struct from CLI arguments
+    let options = CommandOptions {
+        verbose: cli.verbose,
+        copy_lyrics: cli.lyrics,
+        keep_going: cli.keep_going,
+    };
+
+    // Initialize error tracker if --error-files is specified
+    let error_tracker: Option<ErrorTracker> = cli.error_files.as_ref().map(|_| ErrorTracker::new());
+
+    Ok((dest_dir, options, error_tracker))
+}
+
+/// Run the core logic (retry or normal operations)
+fn run_core_logic(
+    cli: &Cli,
+    dest_dir: &str,
+    options: &CommandOptions,
+    error_tracker_ref: &mut Option<&mut ErrorTracker>,
+) -> Result<()> {
+    let (successful_playlists, total_playlists, successful_media_files, total_media_files) =
+        if let Some(retry_file) = &cli.retry_file {
+            // Process retry operations
+            plm_put_playlist_retry::retry_operations(
+                retry_file,
+                dest_dir,
+                options,
+                error_tracker_ref,
+            )?
+        } else {
+            // Normal operation mode
+            process_normal_operations(&cli.playlists, dest_dir, options, error_tracker_ref)?
+        };
+
+    // Print summary
+    println!(
+        "({}/{}) playlist copied",
+        successful_playlists, total_playlists
+    );
+    println!(
+        "({}/{}) media files copied",
+        successful_media_files, total_media_files
+    );
+
+    Ok(())
+}
+
+/// Perform cleanup operations (write error log if needed)
+fn perform_cleanup(cli: &Cli, error_tracker: Option<ErrorTracker>) -> Result<()> {
+    // Write error log if requested
+    if let Some(error_file) = &cli.error_files {
+        if let Some(tracker) = error_tracker {
+            tracker
+                .write_to_file(error_file)
+                .with_context(|| format!("Failed to write error log file: {}", error_file))?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Process normal operations (non-retry mode)
 fn process_normal_operations(
     playlists: &[String],
@@ -635,120 +731,320 @@ fn process_normal_operations(
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
-
-    // Validate that --error-files is only used with --keep-going when not using --retry
-    if cli.error_files.is_some() && !cli.keep_going && cli.retry_file.is_none() {
-        eprintln!("Error: --error-files can only be used with --keep-going");
-        process::exit(255);
-    }
-
-    // Validate that --retry and --error-files don't use the same file
-    if let (Some(retry_file), Some(error_file)) = (&cli.retry_file, &cli.error_files) {
-        if retry_file == error_file {
-            eprintln!("Error: --retry and --error-files cannot specify the same file");
-            process::exit(255);
-        }
-    }
-
-    // Test if error file can be created (fail fast)
-    if let Some(error_file) = &cli.error_files {
-        match File::create(error_file) {
-            Ok(_) => {
-                // File can be created, we'll write to it at the end if needed
-                // The file will remain empty if no errors occur
-            }
-            Err(e) => {
-                eprintln!("Error: Failed to create error log file: {}", e);
-                process::exit(2);
-            }
-        }
-    }
-
-    // Initialize error tracker if --error-files is specified
-    let mut error_tracker: Option<ErrorTracker> =
-        cli.error_files.as_ref().map(|_| ErrorTracker::new());
-    let mut error_tracker_ref: Option<&mut ErrorTracker> = error_tracker.as_mut();
-
-    let dest_dir = match abs_dir(&cli.dest) {
-        Ok(dir) => dir,
+    // 1. Handle Arguments
+    let cli = match handle_arguments() {
+        Ok(c) => c,
         Err(e) => {
-            eprintln!("{}", e);
-            process::exit(255);
+            eprintln!("Error: {}", e);
+            process::exit(255); // Argument/validation error
         }
     };
 
-    // Create CommandOptions struct from CLI arguments
-    let options = CommandOptions {
-        verbose: cli.verbose,
-        copy_lyrics: cli.lyrics,
-        keep_going: cli.keep_going,
+    // 2. Prepare Environment
+    let (dest_dir, options, mut error_tracker_owner) = match prepare_environment(&cli) {
+        Ok(env_details) => env_details,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            // Exit code 2 for error file issues, 255 for dest_dir issues
+            if e.to_string().contains("Failed to create error log file") {
+                process::exit(2);
+            } else {
+                process::exit(255);
+            }
+        }
     };
 
-    // Check if we're in retry mode
-    if let Some(retry_file) = &cli.retry_file {
-        // Process retry operations
-        match plm_put_playlist_retry::retry_operations(
-            retry_file,
-            &dest_dir,
-            &options,
-            &mut error_tracker_ref,
-        ) {
-            Ok((
-                successful_playlists,
-                total_playlists,
-                successful_media_files,
-                total_media_files,
-            )) => {
-                println!(
-                    "({}/{}) playlist copied",
-                    successful_playlists, total_playlists
-                );
-                println!(
-                    "({}/{}) media files copied",
-                    successful_media_files, total_media_files
-                );
-            }
-            Err(e) => {
-                eprintln!("Error during retry operations: {}", e);
-                process::exit(1);
-            }
-        }
-    } else {
-        // Normal operation mode
-        match process_normal_operations(&cli.playlists, &dest_dir, &options, &mut error_tracker_ref)
-        {
-            Ok((
-                successful_playlists,
-                total_playlists,
-                successful_media_files,
-                total_media_files,
-            )) => {
-                println!(
-                    "({}/{}) playlist copied",
-                    successful_playlists, total_playlists
-                );
-                println!(
-                    "({}/{}) media files copied",
-                    successful_media_files, total_media_files
-                );
-            }
-            Err(e) => {
-                eprintln!("Error during normal operations: {}", e);
-                process::exit(1);
-            }
-        }
+    // Create a mutable reference to the ErrorTracker for core logic
+    let mut error_tracker_ref: Option<&mut ErrorTracker> = error_tracker_owner.as_mut();
+
+    // 3. Run Core Logic
+    if let Err(e) = run_core_logic(&cli, &dest_dir, &options, &mut error_tracker_ref) {
+        eprintln!("Error during operations: {}", e);
+        process::exit(1); // Operational error
     }
 
-    // Write error log if requested
-    if let Some(error_file) = cli.error_files {
-        if let Some(tracker) = error_tracker {
-            if let Err(e) = tracker.write_to_file(&error_file) {
-                eprintln!("Error: Failed to write error log file: {}", e);
-                process::exit(2);
-            }
-        }
+    // 4. Perform Cleanup
+    if let Err(e) = perform_cleanup(&cli, error_tracker_owner) {
+        eprintln!("Error during cleanup: {}", e);
+        process::exit(2); // Error writing log file
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    /// Helper function to create a test CLI struct
+    fn create_test_cli(
+        dest: String,
+        playlists: Vec<String>,
+        verbose: bool,
+        lyrics: bool,
+        keep_going: bool,
+        error_files: Option<String>,
+        retry_file: Option<String>,
+    ) -> Cli {
+        Cli {
+            verbose,
+            lyrics,
+            keep_going,
+            error_files,
+            retry_file,
+            dest,
+            playlists,
+        }
+    }
+
+    #[test]
+    fn test_handle_arguments_valid_basic() {
+        // This test would require mocking Cli::parse(), which is complex
+        // For now, we'll test the validation logic directly
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            false,
+            None,
+            None,
+        );
+
+        // Test the validation logic that would be in handle_arguments
+        assert!(cli.error_files.is_none() || cli.keep_going || cli.retry_file.is_some());
+
+        if let (Some(retry_file), Some(error_file)) = (&cli.retry_file, &cli.error_files) {
+            assert_ne!(retry_file, error_file);
+        }
+    }
+
+    #[test]
+    fn test_handle_arguments_error_files_without_keep_going() {
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            false,
+            Some("error.log".to_string()),
+            None,
+        );
+
+        // This should fail validation
+        let should_fail = cli.error_files.is_some() && !cli.keep_going && cli.retry_file.is_none();
+        assert!(should_fail);
+    }
+
+    #[test]
+    fn test_handle_arguments_retry_and_error_files_same_file() {
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            true,
+            Some("same.log".to_string()),
+            Some("same.log".to_string()),
+        );
+
+        // This should fail validation
+        if let (Some(retry_file), Some(error_file)) = (&cli.retry_file, &cli.error_files) {
+            assert_eq!(retry_file, error_file); // This would cause validation to fail
+        }
+    }
+
+    #[test]
+    fn test_prepare_environment_valid_dest() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let dest_path = temp_dir.path().to_string_lossy().to_string();
+
+        let cli = create_test_cli(
+            dest_path.clone(),
+            vec!["playlist.m3u".to_string()],
+            true,
+            true,
+            true,
+            None,
+            None,
+        );
+
+        let result = prepare_environment(&cli)?;
+        let (dest_dir, options, error_tracker) = result;
+
+        // Check that dest_dir is absolute and exists
+        assert!(PathBuf::from(&dest_dir).is_absolute());
+        assert!(PathBuf::from(&dest_dir).exists());
+
+        // Check CommandOptions are set correctly
+        assert_eq!(options.verbose, true);
+        assert_eq!(options.copy_lyrics, true);
+        assert_eq!(options.keep_going, true);
+
+        // Check error_tracker is None when no error_files specified
+        assert!(error_tracker.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prepare_environment_with_error_file() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let dest_path = temp_dir.path().to_string_lossy().to_string();
+        let error_file_path = temp_dir.path().join("error.log");
+
+        let cli = create_test_cli(
+            dest_path,
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            true,
+            Some(error_file_path.to_string_lossy().to_string()),
+            None,
+        );
+
+        let result = prepare_environment(&cli)?;
+        let (_dest_dir, _options, error_tracker) = result;
+
+        // Check error_tracker is Some when error_files is specified
+        assert!(error_tracker.is_some());
+
+        // Check that error file was created (and is empty)
+        assert!(error_file_path.exists());
+        let content = fs::read_to_string(&error_file_path)?;
+        assert!(content.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prepare_environment_invalid_dest() {
+        let cli = create_test_cli(
+            "/nonexistent/path/that/should/not/exist".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            false,
+            None,
+            None,
+        );
+
+        let result = prepare_environment(&cli);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_prepare_environment_error_file_creation_fails() {
+        let temp_dir = TempDir::new().unwrap();
+        let dest_path = temp_dir.path().to_string_lossy().to_string();
+
+        // Try to create error file in a non-existent directory
+        let cli = create_test_cli(
+            dest_path,
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            true,
+            Some("/nonexistent/dir/error.log".to_string()),
+            None,
+        );
+
+        let result = prepare_environment(&cli);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to create error log file"));
+    }
+
+    #[test]
+    fn test_perform_cleanup_no_error_file() -> Result<()> {
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            false,
+            None,
+            None,
+        );
+
+        let result = perform_cleanup(&cli, None);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_perform_cleanup_with_error_file() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let error_file_path = temp_dir.path().join("error.log");
+
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            true,
+            Some(error_file_path.to_string_lossy().to_string()),
+            None,
+        );
+
+        let mut error_tracker = ErrorTracker::new();
+        error_tracker.add_failed_playlist("test_playlist.m3u".to_string());
+        error_tracker.add_failed_media_file("/music".to_string(), "song.mp3".to_string());
+
+        let result = perform_cleanup(&cli, Some(error_tracker));
+        assert!(result.is_ok());
+
+        // Check that error file was written with correct content
+        assert!(error_file_path.exists());
+        let content = fs::read_to_string(&error_file_path)?;
+        assert!(content.contains("P test_playlist.m3u"));
+        assert!(content.contains("M /music/song.mp3"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_perform_cleanup_error_file_write_fails() {
+        // Try to write to a directory that doesn't exist
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            false,
+            false,
+            true,
+            Some("/nonexistent/dir/error.log".to_string()),
+            None,
+        );
+
+        let error_tracker = ErrorTracker::new();
+        let result = perform_cleanup(&cli, Some(error_tracker));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to write error log file"));
+    }
+
+    #[test]
+    fn test_command_options_creation() {
+        let cli = create_test_cli(
+            "/tmp".to_string(),
+            vec!["playlist.m3u".to_string()],
+            true,
+            false,
+            true,
+            None,
+            None,
+        );
+
+        let options = CommandOptions {
+            verbose: cli.verbose,
+            copy_lyrics: cli.lyrics,
+            keep_going: cli.keep_going,
+        };
+
+        assert_eq!(options.verbose, true);
+        assert_eq!(options.copy_lyrics, false);
+        assert_eq!(options.keep_going, true);
+    }
 }

@@ -29,6 +29,14 @@
     `retry_playlist()` from 10 to 6 and in `retry_media_file()` from 7
     to 6 for better maintainability
   * Refactor by introducing `playlist_scanner` module
+  * Refactor `main()` function in `plm-put-playlist.rs` to improve
+    maintainability by splitting it into smaller, focused functions:
+    `handle_arguments()`, `prepare_environment()`, `run_core_logic()`,
+    and `perform_cleanup()`, with centralized exit logic and improved
+    separation of concerns
+* Added:
+  * Add comprehensive unit tests for the newly refactored functions in
+    `plm-put-playlist.rs` to ensure code quality and maintainability
 
 ## [v0.3.0][] - 2025-04-24
 

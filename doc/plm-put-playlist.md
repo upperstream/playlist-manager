@@ -341,21 +341,28 @@ The implementation is organised into several key components:
 
 #### Main Module
 
-1. `main()`: Entry point that parses command-line arguments and
-   orchestrates the process
-2. `process_playlist()`: Processes a playlist file and extracts media
+1. `main()`: Entry point that orchestrates the entire operation by
+   calling helper functions in sequence
+2. `handle_arguments()`: Parses and validates command-line arguments
+3. `prepare_environment()`: Sets up the operating environment including
+   destination directory validation and error tracker initialization
+4. `run_core_logic()`: Executes the main operations (retry or normal
+   mode) and prints summary results
+5. `perform_cleanup()`: Handles cleanup operations such as writing error
+   log files
+6. `process_playlist()`: Processes a playlist file and extracts media
    files
-3. `copy_playlist_file()`: Copies a playlist file to the destination
-4. `extract_media_files()`: Extracts media files from a playlist
-5. `copy_media_files()`: Copies media files from source to destination
-6. `copy_single_media_file()`: Copies a single media file and its lyrics
-   if requested
-7. `filter_already_copied_files()`: Filters out files that have already
-   been copied
-8. `process_normal_operations()`: Processes normal operations (non-
-   retry mode)
-9. `abs_dir()`: Gets the absolute path of a directory
-10. `print_message()`: Prints a message if verbose mode is enabled
+7. `copy_playlist_file()`: Copies a playlist file to the destination
+8. `extract_media_files()`: Extracts media files from a playlist
+9. `copy_media_files()`: Copies media files from source to destination
+10. `copy_single_media_file()`: Copies a single media file and its
+    lyrics if requested
+11. `filter_already_copied_files()`: Filters out files that have already
+    been copied
+12. `process_normal_operations()`: Processes normal operations (non-
+    retry mode)
+13. `abs_dir()`: Gets the absolute path of a directory
+14. `print_message()`: Prints a message if verbose mode is enabled
 
 #### Retry Module
 
@@ -379,6 +386,22 @@ playlist files. This module:
    - Filters out comments and empty lines
    - Normalizes path separators (backslashes to forward slashes)
 3. Is shared with other commands to ensure consistent playlist parsing
+
+### Architecture Improvements
+
+The `main()` function has been refactored to improve maintainability:
+
+1. **Separation of Concerns**: Each helper function has a single,
+   well-defined responsibility
+2. **Centralized Exit Logic**: All `process::exit` calls are handled in
+   `main()` based on the results of helper functions
+3. **Better Error Handling**: Each function returns `Result` types with
+   appropriate error context
+4. **Improved Testability**: Smaller functions are easier to unit test
+   individually
+5. **Clear Program Flow**: The main function now clearly shows the
+   sequence of operations: argument handling, environment preparation,
+   core logic execution, and cleanup
 
 ## Optimisation
 
