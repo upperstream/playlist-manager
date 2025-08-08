@@ -363,6 +363,15 @@ The implementation is organised into several key components:
     retry mode)
 13. `abs_dir()`: Gets the absolute path of a directory
 
+#### File Utils Module
+
+The command uses a dedicated `file_utils` module for file operations.
+This module:
+
+1. Provides a `copy_file()` function that handles directory creation and
+   file copying
+2. Returns a `Result` for idiomatic error handling
+
 #### Retry Module
 
 1. `parse_error_file()`: Parses an error file and extracts failed

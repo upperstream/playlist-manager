@@ -6,7 +6,7 @@ use std::process;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser};
-use playlist_manager::file_utils::generic_copy_file;
+use playlist_manager::file_utils::copy_file;
 use playlist_manager::playlist_scanner;
 use thiserror::Error;
 
@@ -155,26 +155,21 @@ fn copy_single_media_file(
     let dest_file = Path::new(dest_basedir).join(dir_part).join(file_part);
 
     // Copy the main media file
-    let media_success = generic_copy_file(
-        &src_file,
-        &dest_file,
-        |err| {
-            eprintln!("Error: {}", err);
-            if let Some(tracker) = error_tracker {
-                tracker.add_failed_media_file(
-                    media_file.src_basedir.clone(),
-                    media_file.file.clone(),
-                );
-            }
-            options.keep_going
-        },
-    )?;
-
-    if media_success {
-        n_files += 1;
-    } else {
-        return Ok((0, false));
+    if let Err(err) = copy_file(&src_file, &dest_file) {
+        eprintln!("Error: {}", err);
+        if let Some(tracker) = error_tracker {
+            tracker.add_failed_media_file(
+                media_file.src_basedir.clone(),
+                media_file.file.clone(),
+            );
+        }
+        if options.keep_going {
+            return Ok((0, false));
+        } else {
+            return Err(err);
+        }
     }
+    n_files += 1;
 
     // If lyrics option is enabled, try to copy the corresponding .lrc file
     if options.copy_lyrics {
@@ -185,20 +180,16 @@ fn copy_single_media_file(
                 .join(&lyrics_filename);
 
             if lyrics_path.exists() {
-                let dest_lyrics_file = Path::new(dest_basedir).join(dir_part).join(&lyrics_filename);
+                let dest_lyrics_file =
+                    Path::new(dest_basedir).join(dir_part).join(&lyrics_filename);
 
                 // Copy lyrics file (don't track lyrics files in error tracker)
-                let lyrics_success = generic_copy_file(
-                    &lyrics_path,
-                    &dest_lyrics_file,
-                    |err| {
-                        eprintln!("Error: {}", err);
-                        // Don't track lyrics files in error tracker
-                        options.keep_going
-                    },
-                )?;
-
-                if lyrics_success {
+                if let Err(err) = copy_file(&lyrics_path, &dest_lyrics_file) {
+                    eprintln!("Error: {}", err);
+                    if !options.keep_going {
+                        return Err(err);
+                    }
+                } else {
                     n_files += 1;
                 }
             }
@@ -242,7 +233,7 @@ fn copy_media_files(
             Ok((copied, success)) => {
                 n_files += copied;
                 if success {
-                    // Increment the global success counter
+                    // Increment the global success counter only for successful files
                     *current_success_count += 1;
 
                     // Print message with updated counter after successful copy
@@ -279,7 +270,7 @@ fn copy_media_files(
                                         &lyrics_path.to_string_lossy(),
                                         &dest_lyrics_file.to_string_lossy(),
                                     ],
-                                    Some(*current_success_count),
+                                    None, // Don't increment counter for lyrics files
                                     total_files,
                                     Some("lyrics"),
                                 );
@@ -289,6 +280,7 @@ fn copy_media_files(
 
                     successful_files.push(file);
                 }
+                // Note: We don't increment the counter for failed files
             }
             Err(e) => return Err(e),
         }

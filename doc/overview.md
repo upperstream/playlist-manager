@@ -58,8 +58,8 @@ graph TD
    - Implemented directly in the main `plm` script
 
 5. **Shared Library Components**
-   - `file_utils`: Provides generic file operations including copying
-     with error handling
+   - `file_utils`: Provides generic file operations for copying files
+     and creating directories
    - `playlist_scanner`: Provides functionality for parsing playlist
      files
    - `logger`: Provides centralized logging and verbose output
